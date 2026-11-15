@@ -66,6 +66,10 @@ them as pressing quality, intensity, or off-ball value would be a
 `proxy` interpretation. That interpretation is not implemented and is
 not claimed.
 
+Exploratory event-level indicators from three-sixty frames are listed
+separately, under
+[Exploratory event-level indicators](#exploratory-event-level-indicators).
+
 `implemented_unvalidated` means the code passes the acceptance cases
 below and reconciles with an independent count of the source events.
 It does not mean the counts have been shown to reflect anything about
@@ -333,6 +337,102 @@ annotation errors, and nothing here implies that every interception
 pass should carry the flag.
 
 All of these figures count events, not unique pressing episodes.
+
+## Exploratory event-level indicators
+
+Context definition version 1. Implemented in
+`src/phaselens/three_sixty.py`, written by `phaselens three-sixty-context`
+to `data/processed/three_sixty/<commit_sha>/<match_id>/spatial_context.csv`,
+and tested in `tests/test_three_sixty_context.py`. These are not player
+metrics: they describe the visible surroundings of one event's actor,
+and nothing here aggregates them per player.
+
+| Column | Value |
+|---|---|
+| `grain` | One row per source event `(c, m, event_id)`; duplicate event ids stop the run |
+| `required_data` | Events file: `id`, `index`, `period`, `type`, `team.id`, `player.id`, `location`. Three-sixty file: `event_uuid`, `freeze_frame[]` with `location`, `teammate`, `actor`, `keeper`; `visible_area`. Confirmed in the final |
+| `classification` | `derived`. Reading them as pressure, support, or positioning quality would be a `proxy` interpretation, not implemented |
+| `source_reference` | 360 Frames v1.0.0 pp. 1–3; see [three-sixty frames](three_sixty.md) |
+| `validation_status` | `implemented_unvalidated` |
+
+### Definitions
+
+For a source event with exactly one linked frame:
+
+- A valid point is a list of exactly two finite numbers. Booleans,
+  strings, NaN, and infinity are not numbers here; nothing is coerced.
+- The frame's actor `a` is its one entry whose `actor` is exactly
+  `true`. `actor` must be an exact boolean on every entry.
+- `E` is every other entry whose `location` is a valid point and whose
+  `teammate` is an exact boolean. Other entries are excluded and
+  counted.
+- `d(e) = hypot(e.x − a.x, e.y − a.y)`, in source units.
+- Teammates `T = {e ∈ E : teammate = true}`; opponents
+  `O = {e ∈ E : teammate = false}`. The provider defines `teammate` as
+  playing on the actor's team. Keepers are counted by this flag like
+  anyone else.
+
+| Indicator | Definition |
+|---|---|
+| `nearest_visible_opponent_distance` | `min d(e)` over `O`: the nearest valid, observed opponent entry included in the calculation. Null when `O` is empty |
+| `visible_teammates`, `visible_opponents` | `|T|`, `|O|` |
+| `visible_teammates_within_{R}u` | `|{e ∈ T : d(e) <= R}|` |
+| `visible_opponents_within_{R}u` | `|{e ∈ O : d(e) <= R}|` |
+
+Parameters: `R` ∈ {5, 10, 20} source units, boundary inclusive. They
+are exploratory, not validated, and the units are not asserted to be
+metres. Radii must be finite, positive, and unique.
+
+### Status and missing values
+
+| `calculation_status` | When | Indicators |
+|---|---|---|
+| `computed` | One frame, unambiguous single actor with a valid location | Filled |
+| `no_frame` | No frame links to the event | Null |
+| `duplicate_frames` | More than one frame links to the event | Null |
+| `freeze_frame_malformed` | `freeze_frame` is not a list | Null |
+| `actor_selection_ambiguous` | An entry is not an object, or its `actor` is not an exact boolean | Null |
+| `no_actor`, `multiple_actors` | Zero or several entries with `actor` true | Null |
+| `actor_location_invalid` | The actor's `location` is not a valid point | Null |
+
+- `frame_available` separates an event without a frame from a frame
+  with zero observed neighbours. Null means not computed; 0 means
+  computed and none counted.
+- Uncomputed rows keep the event's identity and location. Only fields
+  that can be established are filled; for example, `visible_entries` is
+  set when `freeze_frame` is a list.
+- `entries_excluded_from_context` counts distinct excluded entries, and
+  `context_has_excluded_entries` marks computed rows that have any.
+  Zero counts on such a row mean no qualifying valid entry, not a fully
+  measured frame.
+- `entries_location_invalid` and `entries_teammate_flag_invalid` can
+  overlap: one entry with both problems counts in both. Their sum is
+  not a count of distinct entries.
+
+### Diagnostic fields, never filters
+
+- `actor_event_distance`: actor position against the event's
+  `location`; null when the event has no valid location. A large value
+  is not treated as an error and does not exclude the row.
+- `actor_outside_frame_convention`, `entries_outside_frame_convention`:
+  points outside 0–120 × 0–80, the pitch frame drawn in Events v4.0.0.
+  Such points are kept in every calculation, not clamped or flipped.
+- `visible_opponent_keeper_entries`: included opponent entries with
+  `keeper` true. The 360 specification notes that, rarely, a keeper
+  flag refers to the actor's own keeper without `teammate` being set.
+- `visible_area_status`: shape only (`closed_numeric`, `missing`,
+  `empty`, `malformed`); the area is not used in any calculation.
+
+### Limitations
+
+- Frames show visible players at event moments. Counts are of observed
+  entries, not full teams, and an unobserved player is not absent.
+- Radius circles can extend past the visible area; there is no
+  visibility correction.
+- Entries carry no identity beyond the actor, so no neighbour is
+  attributed to a named player.
+- One match. No aggregation into player scores, rankings, or per-90
+  values.
 
 ## Acceptance cases
 

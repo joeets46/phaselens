@@ -5,7 +5,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from phaselens import analytics, metrics, pilot, statsbomb
+from phaselens import analytics, metrics, pilot, statsbomb, three_sixty
 from phaselens.fetch import FetchError, fetch_bytes, url_exists
 from phaselens.ingest import (
     IngestError,
@@ -30,6 +30,7 @@ def main(argv=None):
         metrics.MetricError,
         analytics.AnalyticsError,
         pilot.PilotError,
+        three_sixty.ThreeSixtyError,
     ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
@@ -108,6 +109,26 @@ def _build_parser():
     pilot_query.add_argument("--file", required=True, help="pilot definition (JSON)")
     pilot_query.add_argument("--name", required=True, choices=sorted(pilot.PILOT_QUERIES))
     pilot_query.set_defaults(handler=_pilot_query)
+
+    frames_ingest = commands.add_parser(
+        "three-sixty-ingest",
+        help="download a match's three-sixty file once, or verify the earlier download",
+    )
+    frames_ingest.add_argument("--manifest", required=True, help="manifest of the match")
+    frames_ingest.set_defaults(handler=_three_sixty_ingest)
+
+    frames_profile = commands.add_parser(
+        "three-sixty-profile", help="report what a match's three-sixty file contains (offline)"
+    )
+    frames_profile.add_argument("--manifest", required=True, help="manifest of the match")
+    frames_profile.set_defaults(handler=_three_sixty_profile)
+
+    frames_context = commands.add_parser(
+        "three-sixty-context",
+        help="write event-level spatial context around each frame's actor (offline)",
+    )
+    frames_context.add_argument("--manifest", required=True, help="manifest of the match")
+    frames_context.set_defaults(handler=_three_sixty_context)
     return parser
 
 
@@ -251,6 +272,65 @@ def _pilot(args):
         f"contract version {metadata['metric_contract_version']}; {totals}"
     )
     print(f"Written to {Path(metadata['combined_artifact']['path']).parent.as_posix()}/")
+
+
+def _three_sixty_ingest(args):
+    project_root = _project_root()
+    status, companion = three_sixty.ingest_three_sixty(
+        project_root, args.manifest, fetch=fetch_bytes, exists=url_exists
+    )
+    record = companion["file"]
+    path = three_sixty.companion_path(project_root, companion["source"]["commit_sha"], companion["match_id"])
+    print(f"Upstream commit: {companion['source']['commit_sha']}")
+    print(f"  {status:<10} {record['local_path']}")
+    print(
+        f"             sha256 {record['sha256']}  {record['size_bytes']} bytes  "
+        f"retrieved {record['retrieved_at_utc']}"
+    )
+    written = "written" if status == "downloaded" else "unchanged"
+    print(f"Companion manifest: {path.relative_to(project_root).as_posix()} ({written})")
+
+
+def _three_sixty_profile(args):
+    project_root = _project_root()
+    directory, summary = three_sixty.profile_three_sixty(project_root, args.manifest)
+    linkage = summary["linkage"]
+    overall = summary["coverage_overall"]
+    comparison = summary["actor_location_comparison"]
+    print(f"Upstream commit: {summary['inputs']['commit_sha']}")
+    print(
+        f"Three-sixty records: {linkage['records']}; distinct {three_sixty.LINK_FIELD} values "
+        f"{linkage['distinct_keys']}; duplicate keys {linkage['duplicate_keys']}; "
+        f"unmatched records {linkage['unmatched_records']}"
+    )
+    print(
+        f"Events with a record: {overall['events_with_360_record']} of {overall['events']} "
+        f"({overall['percent']}%); events without one: {linkage['events_without_a_record']}"
+    )
+    print(
+        f"Actor location compared on {comparison['compared']} records; "
+        f"exact matches {comparison['exact_matches']}"
+    )
+    print(f"Written to {directory.relative_to(project_root).as_posix()}/")
+    for name in three_sixty.REPORT_FILES:
+        print(f"  {name}")
+
+
+def _three_sixty_context(args):
+    project_root = _project_root()
+    directory, summary = three_sixty.write_spatial_context(project_root, args.manifest)
+    radii = ", ".join(three_sixty.radius_label(radius) for radius in summary["parameters"]["radii"])
+    print(f"Upstream commit: {summary['inputs']['commit_sha']}")
+    print(
+        f"Rows: {summary['rows']} (one per source event); with a frame: {summary['rows_with_frame']}; "
+        f"radii {radii}, boundary inclusive, source units"
+    )
+    for status, count in summary["calculation_status_counts"].items():
+        if count:
+            print(f"  {status:<26} {count}")
+    print(f"Written to {directory.relative_to(project_root).as_posix()}/")
+    for name in three_sixty.CONTEXT_FILES:
+        print(f"  {name}")
 
 
 def _pilot_query(args):

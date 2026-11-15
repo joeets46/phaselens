@@ -63,9 +63,10 @@ later. Current milestone and status are in `docs/project_brief.md`.
 ## Stack limits
 
 Allowed: Python, local JSON, Parquet, DuckDB, pytest. DuckDB is the
-only runtime dependency in use.
+only runtime dependency in use. A local, read-only dashboard
+(Streamlit, in the `dashboard` dependency group) was completed in M9.
 Not yet: PostgreSQL, Docker, dbt, Airflow, Spark, Kafka, cloud
-infrastructure, machine learning, dashboards.
+infrastructure, machine learning, hosted or shared dashboards.
 Add a dependency only when the current milestone needs it.
 
 ## Environment
@@ -93,7 +94,21 @@ uv run phaselens analytics --manifest <path>  # typed Parquet copy of the metric
 uv run phaselens query --manifest <path> --name <query>  # one of four fixed SQL queries
 uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json   # five matches, then combine
 uv run phaselens pilot-query --file <pilot file> --name <query>     # fixed pilot queries
+uv run phaselens three-sixty-ingest --manifest <path>   # retrieve once, then verify
+uv run phaselens three-sixty-profile --manifest <path>  # offline linkage/structure report
+uv run phaselens three-sixty-context --manifest <path>  # event-level spatial context, offline
 ```
+
+Spatial-context indicators follow "Exploratory event-level indicators"
+in `docs/metric_catalog.md`: exact booleans, two finite numbers per
+point, null when not computed and 0 only when computed. Coordinate
+bounds are diagnostic only; never filter, clamp, or flip a coordinate.
+
+Three-sixty entries carry no player identity beyond `actor`; never
+identify anonymous entries by position or frame order, and never treat
+an unobserved player as absent. Frames are snapshots at event moments,
+not movement. The companion manifest (`match_<id>.three_sixty.json`)
+leaves the match manifest unchanged.
 
 The pilot (`src/phaselens/pilot.py`) reuses the per-match functions,
 runs matches in order, and stops at the first failure without building
@@ -117,7 +132,29 @@ checksum in `build_metadata.json` (format version 2) and must never
 rebuild or replace anything. Checksums detect change; never describe
 them as proof of authenticity.
 
-Runtime dependency: `duckdb` only. No pandas or pyarrow.
+Runtime dependency: `duckdb` only. No pandas or pyarrow in pipeline
+code. The `dashboard` dependency group (Streamlit and what it pulls in,
+including Altair, plus Matplotlib, which `dashboard_pitch.py` uses only
+to measure the actor's label text) is used only by `dashboard_pitch.py`
+and `dashboard_app.py`; no pipeline module may import them, and
+`dashboard_data.py` stays standard-library only. Interface text lives in
+`dashboard_i18n.py` (English, Turkish, German; standard library only),
+every key in every language, in football terms rather than word for
+word. Team and player names are never translated; event types and
+positions are, while the source name stays the value. The player list
+shows recorded positions and substitution times only; it never shows
+calculated minutes played.
+
+```
+uv sync --group dashboard
+uv run --group dashboard streamlit run src/phaselens/dashboard_app.py
+uv run --isolated --offline pytest   # pipeline tests without the dashboard group
+```
+
+The dashboard only reads verified data: it must never download,
+ingest, rebuild, or write. Context values shown are recomputed with
+`build_spatial_context`; the saved CSV is a comparison only. Binding to
+127.0.0.1 is not a firewall; do not describe it as one.
 
 Profile outputs go to `data/processed/profiles/<commit>/<match_id>/`
 and must stay byte-identical for identical inputs. What the ingested

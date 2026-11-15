@@ -11,7 +11,27 @@ change it.
 
 ```
 manifests/statsbomb/open-data/<commit_sha>/match_<match_id>.json
+manifests/statsbomb/open-data/<commit_sha>/match_<match_id>.three_sixty.json   (companion, optional)
 ```
+
+Only files named exactly `match_<number>.json` are match manifests.
+
+## Companion manifest for three-sixty data (version 1)
+
+Written by `phaselens three-sixty-ingest`, once, and never by hand. It
+leaves the match manifest unchanged.
+
+| Field | Meaning |
+|---|---|
+| `companion_format_version` | `1` |
+| `source` | Repository and commit, as in the match manifest |
+| `match_id` | The match |
+| `event_source` | The match manifest's path, and the events file's local path, SHA-256, and size; the frames link to these events |
+| `head_check` | The HEAD request that confirmed the pinned path before download |
+| `file` | `source_path`, `source_url`, `local_path`, `retrieved_at_utc`, `sha256`, `size_bytes` of the three-sixty file, with the same meaning as in a match manifest |
+
+Before reuse, the companion must name the same commit, match, file
+location, and event source as the verified match manifest.
 
 ## Format (version 1)
 
@@ -74,3 +94,7 @@ file is left as found. A file that no manifest records is never adopted.
 
 The four later manifests reuse the competition index and match list
 recorded by the first, with their original retrieval times.
+
+| Companion manifest | Data |
+|---|---|
+| `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.three_sixty.json` | Three-sixty frames of the final |

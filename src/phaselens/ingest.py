@@ -8,6 +8,7 @@ local files are checked against.
 import hashlib
 import json
 import os
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,10 @@ from phaselens.fetch import fetch_bytes, url_exists
 MANIFEST_FORMAT_VERSION = 1
 RAW_ROOT = "data/raw/statsbomb/open-data"
 MANIFEST_ROOT = "manifests/statsbomb/open-data"
+
+# A match manifest's file name. Other files in the folder, such as a
+# companion manifest for three-sixty data, are not match manifests.
+_MATCH_MANIFEST_NAME = re.compile(r"match_[0-9]+\.json")
 
 _FILE_RECORD_KEYS = {
     "source_path",
@@ -142,7 +147,7 @@ def read_verified_files(project_root, manifest):
                 "`phaselens ingest --manifest` restores it"
             )
         data = local.read_bytes()
-        _check_against_record(data, entry, f"{local}: local file")
+        check_against_record(data, entry, f"{local}: local file")
         verified[source_path] = data
     return verified
 
@@ -215,7 +220,7 @@ def _download_and_record(
         if local.exists():
             entry = _recorded_provenance(project_root, commit_sha, source_path)
             data = local.read_bytes()
-            _check_against_record(data, entry, f"{local}: local file")
+            check_against_record(data, entry, f"{local}: local file")
             verified[source_path] = (entry, data)
 
     # New files are downloaded and validated in memory first. Nothing is
@@ -321,6 +326,8 @@ def _recorded_provenance(project_root, commit_sha, source_path):
     recorded = None
     recorded_in = None
     for manifest_file in sorted(folder.glob("match_*.json")):
+        if not _MATCH_MANIFEST_NAME.fullmatch(manifest_file.name):
+            continue
         manifest = read_manifest(manifest_file)
         if manifest["source"]["commit_sha"] != commit_sha:
             raise IngestError(
@@ -401,17 +408,18 @@ def _verify_or_restore(project_root, manifest, fetch):
             raise IngestError(f"manifest has no consistent record for {source_path}")
         local = project_root / local_path
         if local.exists():
-            _check_against_record(local.read_bytes(), entry, f"{local}: local file")
+            check_against_record(local.read_bytes(), entry, f"{local}: local file")
             statuses[local_path] = "reused"
         else:
             data = fetch(url)
-            _check_against_record(data, entry, f"{url}: downloaded content")
+            check_against_record(data, entry, f"{url}: downloaded content")
             publish(local, data)
             statuses[local_path] = "restored"
     return statuses
 
 
-def _check_against_record(data, entry, what):
+def check_against_record(data, entry, what):
+    """Raise unless `data` has exactly the size and SHA-256 that `entry` records."""
     actual_sha256 = hashlib.sha256(data).hexdigest()
     if len(data) != entry["size_bytes"] or actual_sha256 != entry["sha256"]:
         raise IngestError(

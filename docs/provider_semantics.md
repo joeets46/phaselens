@@ -38,8 +38,9 @@ Reading limits:
   context. Page numbers are the ones printed in each document.
 - The two coordinate figures in Events v4.0.0 (pages 23 and 24) are
   images. They were extracted and viewed; their labels are quoted below.
-- The upstream Matches, Competitions, and 360 Frames documents were
-  not read.
+- The upstream Matches and Competitions documents were not read. The
+  360 Frames document was read in Milestone 7; its version, link, hash,
+  and contents are in [three-sixty frames](three_sixty.md).
 - No current Hudl documentation was consulted. Everything here rests on
   the documents that accompany the pinned data.
 - The documents are not stored in the project.

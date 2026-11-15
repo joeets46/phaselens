@@ -14,10 +14,10 @@ This is the long-term direction. None of it is implemented.
 
 ## Current state
 
-Milestones 0 to 5 are complete. One match from StatsBomb Open Data is
-stored locally as unmodified source files with a provenance manifest:
-UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043), read
-at upstream commit `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
+Milestones 0 to 10 are complete. The first match ingested from
+StatsBomb Open Data, and the one most of the documentation describes,
+is UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043),
+read at upstream commit `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
 
 Its match list, lineups, and events files have been profiled; the
 findings are in the [schema profile](schema_profile.md). The provider's
@@ -38,6 +38,13 @@ of Euro 2024, same commit) runs each match through the same steps and
 combines the results into one table of 156 player-match rows. The
 profile, metrics, and Parquet output of each match stay separate.
 
+A local, read-only dashboard was completed in M9: it shows the pilot
+results and the final's three-sixty frames and spatial context from
+verified data, and never downloads or writes. M10 polished its
+presentation only (layout, formatting, accessibility, and
+documentation) and added no analytical feature. See the
+[demo guide](demo_guide.md).
+
 ## Starting point
 
 A small local pipeline over one match. The goal of the first milestones
@@ -54,9 +61,10 @@ general; what a specific source contains must be confirmed by inspection.
 | Event data with positional snapshots | Positions of some players at the moment of an event | Movement between events, speed, full-pitch coverage |
 | Tracking data | Positions of all players many times per second | Depends on provider; none in the project yet |
 
-For the selected match, a three-sixty file exists upstream at the
-pinned commit. It has not been downloaded, so what it contains and how
-much of the match it covers are still unknown.
+For the final, the three-sixty file has been retrieved and described
+(Milestone 7): it holds positions of visible players at 2,882 of the
+3,304 event moments, without player identities beyond the event's
+actor. See [three-sixty frames](three_sixty.md).
 
 ## Metric classification
 
@@ -95,12 +103,18 @@ Each milestone starts only after explicit approval.
 | M4 | Initial metric implementation | The catalogued event counts are computed to CSV and JSON and reconcile with the source | Complete |
 | M5 | Analytical storage | The player-match metrics are queryable in DuckDB via typed Parquet | Complete |
 | M6 | Five-match pilot | Five matches run through the same pipeline and combine into one verified table | Complete |
+| M7 | Three-sixty exploration | The final's three-sixty file is stored with provenance and its linkage, coverage, and structure are reported | Complete |
+| M8 | Event-level spatial context | One row per event of the final with nearest-opponent distance and radius counts of visible players around the actor | Complete |
+| M9 | Local dashboard | A read-only local app shows the pilot results and the final's frames and context from verified data | Complete |
+| M10 | Dashboard presentation polish | UI/UX, formatting, radius-label placement, responsive layout, accessibility, and documentation are improved, with no new analytical feature | Complete |
 
 ## Non-goals for now
 
 - Overall player rating or confidence score
 - Sprint, recovery-run, or distance metrics from event data
-- Machine learning, dashboards, orchestration, cloud infrastructure
+- Machine learning, orchestration, cloud infrastructure
+- Hosted or shared dashboards (the local, read-only dashboard was
+  completed in M9)
 
 ## Known limitations
 
@@ -128,5 +142,7 @@ Each milestone starts only after explicit approval.
   [provider semantics](provider_semantics.md).
 - What would count as validating the event counts, and against what
   reference?
-- What does the three-sixty file contain, and should it be ingested?
+- Which of the three-sixty questions marked "potentially supported" in
+  [three-sixty frames](three_sixty.md) are worth pursuing, and with
+  which explicit assumptions?
 - Which vision areas can event data address at all, even as a proxy?

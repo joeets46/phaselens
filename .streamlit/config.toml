@@ -1,0 +1,21 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+address = "127.0.0.1"
+
+[client]
+toolbarMode = "minimal"
+
+[theme]
+base = "dark"
+primaryColor = "#a78bfa"
+backgroundColor = "#0b1020"
+secondaryBackgroundColor = "#1a2342"
+textColor = "#e6e9f5"
+borderColor = "#2a3558"
+baseRadius = "0.8rem"
+showWidgetBorder = true
+headingFontSizes = ["1.45rem", "1.1rem", "1rem", "0.95rem", "0.9rem", "0.85rem"]
+paddingTop = "1.2rem"
+dataframeHeaderBackgroundColor = "#1a2342"

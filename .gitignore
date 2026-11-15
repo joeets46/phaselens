@@ -20,3 +20,7 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Tracked on purpose: uv.lock, manifests/
+
+# Agent skill links created by Streamlit; they point into .venv
+.agents/skills/developing-with-streamlit
+.claude/skills/developing-with-streamlit

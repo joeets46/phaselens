@@ -23,6 +23,10 @@ build-backend = "uv_build"
 testpaths = ["tests"]
 
 [dependency-groups]
+dashboard = [
+    "matplotlib>=3.11.2",
+    "streamlit>=1.67.0",
+]
 dev = [
     "pytest>=9.2.0",
 ]

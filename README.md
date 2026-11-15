@@ -3,13 +3,17 @@
 A football analytics data platform for studying players' off-ball
 contributions across phases of play.
 
-**Status:** Milestone 6 (five-match pilot) is complete. Five matches of
-UEFA Euro 2024 are stored locally as unmodified source files, each is
-profiled, three event counts are computed per match against a written
-contract, and the per-match results are combined into one typed
-Parquet table queried with DuckDB. The counts are tested for
-correctness, not validated for football meaning. No player has been
-rated or ranked.
+**Status:** Milestone 9 (local dashboard) is complete. Five
+matches of UEFA Euro 2024 are stored locally as unmodified source
+files, each is profiled, three event counts are computed per match
+against a written contract, and the per-match results are combined into
+one typed Parquet table queried with DuckDB. For the final, the
+three-sixty positional snapshots are stored and described, and an
+exploratory event-level table of visible players around each event's
+actor is derived from them. A local dashboard shows these results. The
+counts
+are tested for correctness, not validated for football meaning. No
+player has been rated or ranked.
 
 ## What exists today
 
@@ -32,6 +36,90 @@ rated or ranked.
   an ingested match and writes CSV and JSON
 - A typed Parquet copy of those counts and four fixed SQL queries run
   with DuckDB
+- The final's three-sixty file, stored with a companion manifest, and
+  an offline report of how it links to the events and what it contains
+
+## Three-sixty frames
+
+```
+uv run phaselens three-sixty-ingest --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json
+uv run phaselens three-sixty-profile --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json
+```
+
+The first downloads the final's three-sixty file once and afterwards
+only verifies it; the match manifest is not changed. The second writes
+a report to `data/processed/three_sixty/<commit_sha>/<match_id>/`
+without any network access.
+
+```
+uv run phaselens three-sixty-context --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json
+```
+
+This writes `spatial_context.csv`, one row per event: for events with
+a frame, the distance from the actor to the nearest visible opponent
+and the counts of visible teammates and opponents within 5, 10, and 20
+source units. These are exploratory indicators about observed players,
+not full-team counts, player ratings, or measures of pressure. The frames are snapshots of visible
+players at event moments, without player identities except the
+event's actor. What they can and cannot support is in
+[three-sixty frames](docs/three_sixty.md).
+
+## Local dashboard
+
+A small Streamlit app for looking at results already prepared on disk.
+Its packages are in a separate dependency group, so the pipeline does
+not need them.
+
+```
+uv sync --group dashboard
+uv run --group dashboard streamlit run src/phaselens/dashboard_app.py
+```
+
+Run both from the project root, then open http://127.0.0.1:8501. Stop
+the server with Ctrl+C in that terminal. A walkthrough is in the
+[demo guide](docs/demo_guide.md). On a
+first run Streamlit may ask for an e-mail address in the terminal; it
+is optional and can be skipped with Enter. Note that a later plain
+`uv sync` removes the dashboard group again.
+
+- **Match overview:** a match header from the verified match list, the
+  two teams' counts as paired comparison rows, and the player-match
+  rows of the pilot, read through the verified pilot queries.
+- **360° moments:** pick an action by type, team, and player (the
+  player list follows the team and runs from goalkeeper to attack, with
+  recorded positions and substitution times); see the visible players
+  of its snapshot on a pitch in team colours, the named event player,
+  the recorded action spot, the attacking direction, optional
+  5/10/20-unit rings and the recorded camera view, and the action's
+  spatial-context values, with all fields in an expander.
+- **Languages and guide:** the interface is available in English,
+  Turkish, and German (menu at the top right), using common football
+  terms in each language. Team and player names are shown as recorded;
+  event types and positions are translated. A "Guide" button explains
+  how to use the page, every symbol on the pitch, and the terms.
+
+What the app does and does not do:
+
+- It reads prepared local data and verifies it with the existing
+  checks before showing it. It never downloads, ingests, rebuilds, or
+  writes anything; missing data produces a message naming the command
+  to run.
+- Context values are recomputed in memory from the verified events and
+  frames. The saved `spatial_context.csv` is only compared against
+  them.
+- Data is verified once per browser session and kept in memory for
+  that session. Changes on disk after loading are seen only after
+  pressing the reload button (⟳).
+- It shows observed event context: anonymous visible players at event
+  moments, in source coordinate units. It is not tracking data and
+  says nothing about player quality.
+- Coordinates and distances are rounded to three decimals on screen only
+  ("<0.001" for a distance above 0 but below 0.001); calculations and
+  saved files keep full precision.
+- `.streamlit/config.toml` turns off Streamlit's usage statistics and
+  binds the server to 127.0.0.1. That limits who can connect; it is not
+  a firewall and does not block outgoing traffic. The app itself loads
+  no external images, fonts, scripts, or data.
 
 ## What is planned
 
@@ -59,6 +147,10 @@ listed above is implemented.
 
 Requires Python 3.13 or later and [uv](https://docs.astral.sh/uv/).
 The only runtime dependency is DuckDB; pytest is used for development.
+The optional `dashboard` group adds Streamlit; its interactive pitch
+uses Altair, which Streamlit installs. The group still declares
+Matplotlib, which nothing uses any more; declaring Altair and removing
+Matplotlib in `pyproject.toml` is pending.
 
 ```
 uv sync          # create .venv and install the locked dependencies
@@ -74,7 +166,7 @@ uv run pytest    # run the tests (no internet needed)
 | Match | Spain v England, 2024-07-14 (`match_id` 3943043) |
 | Upstream commit | `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb` |
 | Manifest | `manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` |
-| Three-sixty file | Present upstream at this commit; checked, not downloaded |
+| Three-sixty file | Downloaded in Milestone 7, with its own companion manifest |
 
 Why this match: it is the only match of its season whose stage is
 "Final" in the source, so the choice is unambiguous; it is widely
@@ -308,7 +400,8 @@ the [analytical layer](docs/analytical_layer.md) document.
 
 | Path | Purpose | In Git |
 |---|---|---|
-| `src/phaselens/` | Python package: `fetch`, `statsbomb`, `ingest`, `profile`, `metrics`, `analytics`, `pilot`, `cli`, and the SQL files in `sql/` | Yes |
+| `src/phaselens/` | Python package: `fetch`, `statsbomb`, `ingest`, `profile`, `metrics`, `analytics`, `pilot`, `three_sixty`, `cli`, the dashboard modules `dashboard_data`, `dashboard_i18n`, `dashboard_pitch`, `dashboard_app`, and the SQL files in `sql/` | Yes |
+| `.streamlit/config.toml` | Dashboard server settings (usage statistics off, local address) and colour theme | Yes |
 | `pilots/` | Pilot definitions: which matches a pilot runs | Yes |
 | `tests/` | pytest tests with synthetic fixtures | Yes |
 | `docs/` | Project brief, data sources, schema profile, provider semantics, metric catalog, analytical layer | Yes |
@@ -358,8 +451,10 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   bytes recorded for them. A CSV edit that keeps every team's totals
   can pass the build. Checksums are not signatures: none of this
   proves where a file came from.
-- The three-sixty file is known to exist but has not been downloaded
-  or examined.
+- Three-sixty data has been retrieved and described for the final
+  only. Its positional entries carry no player identity beyond the
+  actor, cover visible players at event moments, and say nothing about
+  movement between events.
 - Resolving the latest commit uses the unauthenticated GitHub API,
   which is rate limited. Passing `--commit` avoids that request.
 - Five matches support pipeline development, not conclusions about
@@ -373,6 +468,8 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
 - [Provider semantics](docs/provider_semantics.md)
 - [Metric catalog](docs/metric_catalog.md)
 - [Analytical layer](docs/analytical_layer.md)
+- [Three-sixty frames](docs/three_sixty.md)
+- [Demo guide](docs/demo_guide.md)
 - [Manifest format](manifests/README.md)
 
 ## Data source and attribution
