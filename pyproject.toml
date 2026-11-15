@@ -1,0 +1,28 @@
+[project]
+name = "phaselens"
+version = "0.1.0"
+description = "Football analytics data platform for studying off-ball contributions across phases of play."
+readme = "README.md"
+requires-python = ">=3.13"
+# Runtime dependencies are added only when a milestone needs them.
+dependencies = [
+    "duckdb>=2.0.0",
+]
+
+# Installs the `phaselens` command into the environment.
+[project.scripts]
+phaselens = "phaselens.cli:main"
+
+# The build backend is what turns src/phaselens/ into an installable package.
+# uv_build finds the package at src/<project name>/ by default (src-layout).
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

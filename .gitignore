@@ -1,0 +1,22 @@
+# Virtual environment (rebuilt from uv.lock with `uv sync`)
+.venv/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# pytest cache
+.pytest_cache/
+
+# Local secrets and settings; the example file stays tracked
+.env
+.env.*
+!.env.example
+
+# Data is never committed. Only the placeholder that keeps the folder is tracked.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Tracked on purpose: uv.lock, manifests/

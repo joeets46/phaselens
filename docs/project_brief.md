@@ -1,0 +1,125 @@
+# PhaseLens project brief
+
+## Vision
+
+Evaluate players' off-ball contributions across phases of play:
+
+- Defensive transitions and counterpressing
+- Pressing involvement
+- Off-ball attacking movement and support
+- Defensive positioning
+- Physical metrics such as sprints, only when suitable data exists
+
+This is the long-term direction. None of it is implemented.
+
+## Current state
+
+Milestones 0 to 5 are complete. One match from StatsBomb Open Data is
+stored locally as unmodified source files with a provenance manifest:
+UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043), read
+at upstream commit `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
+
+Its match list, lineups, and events files have been profiled; the
+findings are in the [schema profile](schema_profile.md). The provider's
+specification was read for the fields the first metrics need; see
+[provider semantics](provider_semantics.md). Three event counts are
+implemented under the contract in the
+[metric catalog](metric_catalog.md) and written as CSV and JSON. Their
+status is `implemented_unvalidated`: tested against the contract, not
+validated for football meaning. There is no rating, ranking, or
+normalization by playing time.
+
+The same counts are stored as one typed Parquet table and can be
+queried with DuckDB through four fixed queries; see the
+[analytical layer](analytical_layer.md). That layer changes no value.
+
+## Starting point
+
+A small local pipeline over one match. The goal of the first milestones
+is to learn what the data contains, not to produce metrics.
+
+## Data tiers
+
+What each kind of data could support. Rows describe the data type in
+general; what a specific source contains must be confirmed by inspection.
+
+| Tier | What it records | What it cannot support |
+|---|---|---|
+| Event data | Discrete on-ball and some defensive actions, with time and location | Continuous movement, speed, positioning of players not involved in the event |
+| Event data with positional snapshots | Positions of some players at the moment of an event | Movement between events, speed, full-pitch coverage |
+| Tracking data | Positions of all players many times per second | Depends on provider; none in the project yet |
+
+For the selected match, a three-sixty file exists upstream at the
+pinned commit. It has not been downloaded, so what it contains and how
+much of the match it covers are still unknown.
+
+## Metric classification
+
+- **Observed:** a value recorded directly in the source data.
+- **Derived:** computed deterministically from observed values, with no
+  claim beyond them.
+- **Proxy:** an indirect indicator standing in for something the data
+  does not record. A proxy always carries a stated limitation.
+
+## Architecture
+
+| Layer | Location | Rule | State |
+|---|---|---|---|
+| Raw | `data/raw/` | Byte-for-byte copies of source files, never modified, not committed | Working |
+| Provenance | `manifests/` | Records of where each raw file came from, committed | Working |
+| Profile | `data/processed/profiles/` | Descriptive counts of a match's files, rebuildable from raw, not committed | Working |
+| Metrics | `data/processed/metrics/` | Catalogued event counts per player as CSV and JSON, rebuildable from raw, not committed | Working |
+| Analytical | `data/processed/analytics/` | One typed Parquet table of the metrics, queried with in-memory DuckDB, rebuildable, not committed | Working |
+
+Every file of a run is read at one upstream commit SHA, never from a
+moving branch, and is stored under a folder named after that commit.
+
+Source-specific code is intended to stay separate from metric code, so
+a tracking provider can be added later without rewriting metrics.
+
+## Milestones
+
+Each milestone starts only after explicit approval.
+
+| ID | Goal | Done when | Status |
+|---|---|---|---|
+| M0 | Project skeleton | Repository, environment, and a passing test exist | Complete |
+| M1 | Ingest one match | Metadata, lineups, and events are stored raw with a manifest | Complete |
+| M2 | Inspect the event schema | Schema notes are written from the actual files | Complete |
+| M3 | Choose answerable questions | First candidate rows are in the metric catalog | Complete |
+| M4 | Initial metric implementation | The catalogued event counts are computed to CSV and JSON and reconcile with the source | Complete |
+| M5 | Analytical storage | The player-match metrics are queryable in DuckDB via typed Parquet | Complete |
+
+## Non-goals for now
+
+- Overall player rating or confidence score
+- Sprint, recovery-run, or distance metrics from event data
+- Machine learning, dashboards, orchestration, cloud infrastructure
+
+## Known limitations
+
+- One match supports pipeline development, not conclusions about players.
+- Event data is collected by human annotators using provider
+  definitions; those definitions bound what any metric can mean.
+- No parameter in this project has been validated against tracking data
+  or expert judgement.
+- The source data may not be redistributed or used commercially, and
+  published analysis must credit StatsBomb. See
+  [data sources](data_sources.md).
+- Only one real match has been ingested. Reusing shared files for
+  further matches at the same commit is tested offline only.
+
+- The schema is known from one match only. Provider definitions come
+  from 2019 documents that do not cover every field in the files.
+- The implemented metrics are event counts without any normalization
+  by playing time, computed for one match, and not validated for
+  football meaning.
+
+## Open questions
+
+- The questions the provider's documents leave unresolved, listed in
+  [provider semantics](provider_semantics.md).
+- What would count as validating the event counts, and against what
+  reference?
+- What does the three-sixty file contain, and should it be ingested?
+- Which vision areas can event data address at all, even as a proxy?
