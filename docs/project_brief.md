@@ -33,6 +33,11 @@ The same counts are stored as one typed Parquet table and can be
 queried with DuckDB through four fixed queries; see the
 [analytical layer](analytical_layer.md). That layer changes no value.
 
+A five-match pilot (the final, both semi-finals, and two quarter-finals
+of Euro 2024, same commit) runs each match through the same steps and
+combines the results into one table of 156 player-match rows. The
+profile, metrics, and Parquet output of each match stay separate.
+
 ## Starting point
 
 A small local pipeline over one match. The goal of the first milestones
@@ -89,6 +94,7 @@ Each milestone starts only after explicit approval.
 | M3 | Choose answerable questions | First candidate rows are in the metric catalog | Complete |
 | M4 | Initial metric implementation | The catalogued event counts are computed to CSV and JSON and reconcile with the source | Complete |
 | M5 | Analytical storage | The player-match metrics are queryable in DuckDB via typed Parquet | Complete |
+| M6 | Five-match pilot | Five matches run through the same pipeline and combine into one verified table | Complete |
 
 ## Non-goals for now
 
@@ -98,7 +104,8 @@ Each milestone starts only after explicit approval.
 
 ## Known limitations
 
-- One match supports pipeline development, not conclusions about players.
+- Five knockout matches support pipeline development, not conclusions
+  about players.
 - Event data is collected by human annotators using provider
   definitions; those definitions bound what any metric can mean.
 - No parameter in this project has been validated against tracking data
@@ -106,8 +113,8 @@ Each milestone starts only after explicit approval.
 - The source data may not be redistributed or used commercially, and
   published analysis must credit StatsBomb. See
   [data sources](data_sources.md).
-- Only one real match has been ingested. Reusing shared files for
-  further matches at the same commit is tested offline only.
+- Totals across matches are raw event counts, not normalized for
+  playing time, number of matches, or opportunities.
 
 - The schema is known from one match only. Provider definitions come
   from 2019 documents that do not cover every field in the files.

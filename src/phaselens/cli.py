@@ -5,7 +5,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from phaselens import analytics, metrics, statsbomb
+from phaselens import analytics, metrics, pilot, statsbomb
 from phaselens.fetch import FetchError, fetch_bytes, url_exists
 from phaselens.ingest import (
     IngestError,
@@ -24,7 +24,13 @@ def main(argv=None):
     args = _build_parser().parse_args(argv)
     try:
         args.handler(args)
-    except (FetchError, IngestError, metrics.MetricError, analytics.AnalyticsError) as error:
+    except (
+        FetchError,
+        IngestError,
+        metrics.MetricError,
+        analytics.AnalyticsError,
+        pilot.PilotError,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0
@@ -89,6 +95,19 @@ def _build_parser():
     query.add_argument("--manifest", required=True, help="manifest of the match")
     query.add_argument("--name", required=True, choices=sorted(analytics.QUERIES))
     query.set_defaults(handler=_query)
+
+    run_pilot = commands.add_parser(
+        "pilot", help="run every match of a pilot definition in order, then combine them"
+    )
+    run_pilot.add_argument("--file", required=True, help="pilot definition (JSON)")
+    run_pilot.set_defaults(handler=_pilot)
+
+    pilot_query = commands.add_parser(
+        "pilot-query", help="run one of the fixed pilot queries on the combined output (offline)"
+    )
+    pilot_query.add_argument("--file", required=True, help="pilot definition (JSON)")
+    pilot_query.add_argument("--name", required=True, choices=sorted(pilot.PILOT_QUERIES))
+    pilot_query.set_defaults(handler=_pilot_query)
     return parser
 
 
@@ -207,8 +226,42 @@ def _analytics(args):
         print(f"  {name}")
 
 
+def _pilot(args):
+    project_root = _project_root()
+
+    def report(result):
+        files = ", ".join(f"{count} {status}" for status, count in result["source_files"].items())
+        periods = ", ".join(
+            f"{item['period']}: {item['events']}" for item in result["events_by_period"]
+        )
+        totals = ", ".join(f"{name} {result['metric_totals'][name]}" for name in metrics.METRIC_NAMES)
+        raised = ", ".join(f"{name} ({count})" for name, count in result["diagnostics_raised"].items())
+        print(f"match {result['match_id']}: ingest, profile, metrics, analytics completed")
+        print(f"  source files: {files}")
+        print(f"  events per period: {periods}")
+        print(f"  {result['eligible_player_count']} eligible players; {totals}")
+        print(f"  diagnostics raised: {raised or 'none'}")
+
+    results, metadata = pilot.run_pilot(
+        project_root, args.file, fetch=fetch_bytes, exists=url_exists, report=report
+    )
+    totals = ", ".join(f"{name} {metadata['metric_totals'][name]}" for name in metrics.METRIC_NAMES)
+    print(
+        f"Combined output: {len(results)} matches, {metadata['row_count']} player-match rows, "
+        f"contract version {metadata['metric_contract_version']}; {totals}"
+    )
+    print(f"Written to {Path(metadata['combined_artifact']['path']).parent.as_posix()}/")
+
+
+def _pilot_query(args):
+    _print_table(*pilot.run_pilot_query(_project_root(), args.file, args.name))
+
+
 def _query(args):
-    columns, rows = analytics.run_query(_project_root(), args.manifest, args.name)
+    _print_table(*analytics.run_query(_project_root(), args.manifest, args.name))
+
+
+def _print_table(columns, rows):
     table = [columns, *([str(value) for value in row] for row in rows)]
     widths = [max(len(line[position]) for line in table) for position in range(len(columns))]
     for line in table:

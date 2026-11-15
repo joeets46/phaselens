@@ -15,6 +15,8 @@ the cells are long.
 | Column | Meaning |
 |---|---|
 | `metric_name` | Unique snake_case identifier, same as in code |
+| `label` | Optional short human-readable name for tables and slides; not used in code |
+| `description` | Optional one-sentence statement of what is counted |
 | `grain` | What one output row describes |
 | `required_data` | Source, files, and fields needed, confirmed to exist |
 | `classification` | `observed`, `derived`, or `proxy` |
@@ -97,7 +99,7 @@ by `team_id` and then `player_id`. The order is not a ranking.
 | `player_name` | Label: the name beside the player's id in the first record that makes the pair eligible, in file order |
 | `pressure_event_count` | Events, per the definition below |
 | `counterpress_pressure_event_count` | Events, per the definition below |
-| `counterpress_flagged_event_count` | Events, per the definition below |
+| `counterpress_flagged_event_count` | Events, per the definition below: counterpress-flagged events within the supported types only |
 
 Names are descriptive only. They are never used to match or join.
 
@@ -292,6 +294,8 @@ minutes played. The only window involved is the provider's own
 | Column | Value |
 |---|---|
 | `metric_name` | `counterpress_flagged_event_count` |
+| `label` | Counterpress-flagged events — supported types |
+| `description` | Count of counterpress-flagged events within the contract's supported event types, excluding offensive fouls. |
 | `grain` | `(c, m, t, p)` |
 | `required_data` | As `counterpress_pressure_event_count`, plus `foul_committed.offensive` |
 | `classification` | `derived` |
@@ -305,6 +309,30 @@ minutes played. The only window involved is the provider's own
 For every row:
 `0 <= counterpress_pressure_event_count <= pressure_event_count` and
 `counterpress_pressure_event_count <= counterpress_flagged_event_count`.
+
+### Scope observed in the five-match pilot
+
+The identifier says "flagged events", but the metric does not count
+every flagged event. In the five matches of the pilot:
+
+| Events with `counterpress` exactly `true` | Count |
+|---|---|
+| In the events files | 425 |
+| Included by this metric | 420 |
+| Excluded: offensive fouls | 0 |
+| Excluded: type outside `S` | 5 |
+
+All five excluded events are `Pass` events (type 30) with
+`pass.type.name` "Interception": one in match 3942752, two in 3942819,
+two in 3942226. The `counterpress_true_outside_supported_types`
+diagnostic of each match lists their event ids.
+
+What the flag means on these events is unresolved; see
+[provider semantics](provider_semantics.md). They are not treated as
+annotation errors, and nothing here implies that every interception
+pass should carry the flag.
+
+All of these figures count events, not unique pressing episodes.
 
 ## Acceptance cases
 

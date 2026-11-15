@@ -94,8 +94,32 @@ the flag.
 | 33 | 50/50 | Yes | Yes (Events p. 9, Spec p. 14) | 0 |
 
 The list is introduced with "including", so the documents do not state
-that it is exhaustive. In the match, no event outside these seven types
-carries the flag.
+that it is exhaustive. The counts in the table are from the final
+(match 3943043), where no event outside these seven types carries the
+flag.
+
+**Observed in the five-match pilot.** Across the five pilot matches, 425
+events have `counterpress` exactly `true`. Five of them are outside the
+seven types: all are `Pass` events (type 30) whose `pass.type.name` is
+"Interception" (match 3942752: one; 3942819: two; 3942226: two). What
+the documents and the files show:
+
+- Events v4.0.0 (p. 17) describes pass type 64 "Interception" as "One
+  touch pass off an interception". Neither event document lists
+  `counterpress` for `Pass`; the Spec v1.1 `Pass` section (pp. 26–27)
+  does not mention it.
+- In each case the related events are the opponent's incomplete pass
+  and the recipient's ball receipt, plus, once, an opponent `Duel`
+  without the flag. None of them is a supported type carrying the flag,
+  and no separate `Interception` event (type 10) is among them.
+- Of 28 `Pass` events with `pass.type.name` "Interception" in the five
+  matches, 5 carry the flag.
+
+Not established: whether the flag on these passes is intended, whether
+it describes the interception part of a one-touch action, and why some
+interception passes carry it and others do not. The flags are not
+assumed to be errors. `counterpress_flagged_event_count` excludes these
+events and reports their ids; see the [metric catalog](metric_catalog.md).
 
 ### What `under_pressure` means
 
@@ -193,7 +217,9 @@ In the match, 1,514 of 4,934 references are not returned. Unresolved.
 
 - Which team's turnover starts the `counterpress` window, and whether
   the flag is collected or computed.
-- Whether the list of seven `counterpress` event types is exhaustive.
+- Whether the list of seven `counterpress` event types is exhaustive,
+  and what the flag means on the five `Pass` events with
+  `pass.type.name` "Interception" observed in the pilot.
 - An explicit serialization rule for `under_pressure`.
 - Which `off_camera` statement is authoritative.
 - Direction of play and coordinate units as explicit statements.

@@ -91,7 +91,16 @@ uv run phaselens profile --manifest <path>    # describe a match's files, offlin
 uv run phaselens metrics --manifest <path>    # catalogued event counts, offline
 uv run phaselens analytics --manifest <path>  # typed Parquet copy of the metrics
 uv run phaselens query --manifest <path> --name <query>  # one of four fixed SQL queries
+uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json   # five matches, then combine
+uv run phaselens pilot-query --file <pilot file> --name <query>     # fixed pilot queries
 ```
+
+The pilot (`src/phaselens/pilot.py`) reuses the per-match functions,
+runs matches in order, and stops at the first failure without building
+a combined output. Pilot queries keep matches apart; never add matches
+together into one team total or present player-match rows as distinct
+players. Pilot totals are not normalized for time, matches, or
+opportunities.
 
 Metric outputs go to `data/processed/metrics/<commit>/<match_id>/` and
 must stay byte-identical for identical inputs. The metric code follows

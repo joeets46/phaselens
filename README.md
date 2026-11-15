@@ -3,12 +3,13 @@
 A football analytics data platform for studying players' off-ball
 contributions across phases of play.
 
-**Status:** Milestone 5 (analytical storage) is complete. One match is
-stored locally as unmodified source files, its contents have been
-profiled, three event counts are implemented against a written
-contract, and those counts can be queried from typed Parquet with
-DuckDB. The counts are tested for correctness, not validated for
-football meaning. No player has been rated or ranked.
+**Status:** Milestone 6 (five-match pilot) is complete. Five matches of
+UEFA Euro 2024 are stored locally as unmodified source files, each is
+profiled, three event counts are computed per match against a written
+contract, and the per-match results are combined into one typed
+Parquet table queried with DuckDB. The counts are tested for
+correctness, not validated for football meaning. No player has been
+rated or ranked.
 
 ## What exists today
 
@@ -137,8 +138,9 @@ is not rewritten, and its recorded retrieval time stays the original
 one. If any condition fails, the run stops and the file is left as
 found: not reused, not overwritten, not deleted.
 
-This behaviour is covered by offline tests with synthetic data. No
-second real match has been ingested.
+This behaviour is covered by offline tests with synthetic data, and the
+five-match pilot uses it: four matches were ingested after the final at
+the same commit, each reusing the verified shared files.
 
 ## Profiling the match
 
@@ -279,11 +281,35 @@ not promised across DuckDB versions. Details, including what the
 validation does and does not guarantee, are in the
 [analytical layer](docs/analytical_layer.md) document.
 
+## Five-match pilot
+
+```
+uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json
+uv run phaselens pilot-query --file pilots/euro2024_knockout_pilot.json --name team-totals
+```
+
+`pilot` runs the final, both semi-finals, and two quarter-finals of
+Euro 2024 one after another through the same per-match steps, then
+combines their verified Parquet tables into one table of 156
+player-match rows. It stops at the first failing match, names the match
+and the step, and builds no combined output in that run. A rerun
+downloads nothing that is already verified on disk.
+
+`pilot-query` runs one of four fixed pilot queries (`player-rows`,
+`team-totals`, `team-player-counts`, `integrity-checks`). They keep
+matches apart: a team or player has one row per match. Totals are raw
+event counts, not normalized for playing time, number of matches, or
+opportunities.
+
+Selection rule, observed periods, verification, and limitations are in
+the [analytical layer](docs/analytical_layer.md) document.
+
 ## Repository layout
 
 | Path | Purpose | In Git |
 |---|---|---|
-| `src/phaselens/` | Python package: `fetch`, `statsbomb`, `ingest`, `profile`, `metrics`, `analytics`, `cli`, and the SQL files in `sql/` | Yes |
+| `src/phaselens/` | Python package: `fetch`, `statsbomb`, `ingest`, `profile`, `metrics`, `analytics`, `pilot`, `cli`, and the SQL files in `sql/` | Yes |
+| `pilots/` | Pilot definitions: which matches a pilot runs | Yes |
 | `tests/` | pytest tests with synthetic fixtures | Yes |
 | `docs/` | Project brief, data sources, schema profile, provider semantics, metric catalog, analytical layer | Yes |
 | `manifests/` | Provenance records for downloaded data | Yes |
@@ -303,8 +329,8 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
 
 ## Limitations
 
-- Only one real match has been ingested. Ingesting further matches at
-  the same commit is tested offline only.
+- Five real matches have been ingested, all knockout matches of one
+  tournament at one commit.
 - A raw file that no manifest records is never adopted. If a run is
   killed between writing files and writing its manifest, the leftover
   files must be inspected and moved away by hand.
@@ -325,7 +351,7 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   playing time, and are not validated for football meaning.
 - Player eligibility uses the Starting XI and substitution events. It
   is the participation contract supported today, not a general rule,
-  and it has been exercised on one real match.
+  and it has been exercised on five real matches.
 - The analytical layer holds one table for one match. Its checks show
   that the Parquet file equals the metrics CSV, that the CSV agrees
   with its summary on counts and totals, and that files still have the
@@ -336,7 +362,7 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   or examined.
 - Resolving the latest commit uses the unauthenticated GitHub API,
   which is rate limited. Passing `--commit` avoids that request.
-- One match supports pipeline development, not conclusions about
+- Five matches support pipeline development, not conclusions about
   players or teams.
 
 ## Documentation

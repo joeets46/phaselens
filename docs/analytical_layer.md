@@ -243,6 +243,129 @@ querying a Parquet file, are reported as one line beginning `error:`
 and exit status 1. Only DuckDB's own exceptions are translated this
 way. Any other exception is a programming error and is shown in full.
 
+## Five-match pilot
+
+A pilot runs a fixed list of matches through the unchanged per-match
+pipeline and, only when every match succeeds, joins their verified
+Parquet tables into one combined table.
+
+### Selection
+
+`pilots/euro2024_knockout_pilot.json` names five matches of UEFA Euro
+2024 (competition 55, season 282) at commit
+`4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`. They were chosen from the
+locally stored, manifest-verified match list by `competition_stage.name`:
+
+| match_id | match_date | Stage | Teams |
+|---|---|---|---|
+| 3943043 | 2024-07-14 | Final | Spain v England |
+| 3942752 | 2024-07-09 | Semi-finals | Spain v France |
+| 3942819 | 2024-07-10 | Semi-finals | Netherlands v England |
+| 3942226 | 2024-07-05 | Quarter-finals | Spain v Germany |
+| 3942349 | 2024-07-05 | Quarter-finals | Portugal v France |
+
+The quarter-finals are the first two when sorted by `match_date` and
+then `match_id`. No match was chosen or avoided for its length.
+
+Periods observed in the events files (from each match's profile):
+
+| match_id | Events per period |
+|---|---|
+| 3943043 | 1: 1,694 · 2: 1,610 |
+| 3942752 | 1: 1,559 · 2: 1,771 |
+| 3942819 | 1: 1,712 · 2: 1,791 |
+| 3942226 | 1: 1,701 · 2: 1,655 · 3: 596 · 4: 511 |
+| 3942349 | 1: 1,958 · 2: 1,881 · 3: 731 · 4: 603 · 5: 22 |
+
+The metric contract counts events in every period, including periods 3
+to 5. Nothing is filtered by period.
+
+### Commands
+
+```
+uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json
+uv run phaselens pilot-query --file pilots/euro2024_knockout_pilot.json --name team-totals
+```
+
+`pilot` processes the matches in the listed order, one at a time. For
+each it runs the same functions as `ingest`, `profile`, `metrics`, and
+`analytics`, and prints the source files downloaded or reused, the
+events per period, the totals, and any diagnostics. A match that
+already has a manifest is verified, not downloaded again; the
+competition index and match list are shared and reused under the
+existing verification rules.
+
+### Failure behaviour
+
+The run stops at the first match that fails. The error names the match
+and the step (`ingest`, `profile`, `metrics`, `analytics`, or
+`combine`), later matches are not processed, and no combined output is
+built. Per-match outputs written before the failure stay, as they would
+after running those commands by hand.
+
+If a combined output from an earlier successful run is on disk, the
+error says so and that it was not produced by this run. It is not
+deleted. `pilot-query` verifies it against the current per-match
+outputs before every use and refuses it if any no longer match.
+
+### Combined output
+
+Written to
+`data/processed/analytics/<commit_sha>/pilots/<pilot name>/`:
+`player_match_metrics.parquet`, with the same columns, types, and
+composite key as a single match, and `build_metadata.json` at combined
+metadata version 1.
+
+Before combining, each match's published output passes the same
+verification as `query --manifest`: raw files against the manifest,
+metrics files against their recorded hashes, and the Parquet file
+against its checksum. Then:
+
+1. every row carries the pilot's commit, its own match id, and its
+   match's contract version, and all matches share one contract
+   version;
+2. no composite key occurs twice;
+3. each match's row count and totals equal its own build metadata, and
+   the combined count and totals equal their sum;
+4. the written file is read back and compared row by row, and the
+   pilot integrity checks report no violation.
+
+The metadata records the pilot definition's name, path, commit,
+competition, season, and exact match list; for each match its manifest
+path, the path, SHA-256, and size of its build metadata and Parquet
+file, its contract version, row count, and totals; and the combined
+file's own checksum.
+
+### Pilot queries
+
+Before a pilot query reads the combined file, it checks that the
+combined metadata names exactly the pilot definition's commit,
+competition, season, and match list; runs the full single-match
+verification for every match; checks that each match's build metadata
+and Parquet file are the ones recorded at combine time; and checks the
+combined file's own SHA-256 and size.
+
+| `--name` | SQL file | Grain |
+|---|---|---|
+| `player-rows` | `pilot_player_rows.sql` | One row per match, team, and player; a player in several matches has several rows |
+| `team-totals` | `pilot_team_totals.sql` | One row per match and team; matches are never added together |
+| `team-player-counts` | `pilot_team_player_counts.sql` | Eligible player rows within one match and team, and how many have a zero for each count; not distinct players |
+| `integrity-checks` | `pilot_integrity_checks.sql` | Duplicate keys, more than one commit or contract version, negative counts, the two inequalities |
+
+The single-match queries and their SQL files are unchanged.
+
+### Pilot limitations
+
+- Totals are raw event counts. They are not normalized for playing
+  time, for the number of matches a team or player appears in, or for
+  opportunities such as the opponent's possession. A match with extra
+  time has more minutes in which events can occur.
+- Five knockout matches are not a sample of the tournament.
+- Player rows are per match. The same player appears once for each
+  match, and no query merges them.
+- The verification limits described above apply to each match and to
+  the combined file: checksums detect change, not authenticity.
+
 ## Reproducibility
 
 Two kinds are kept apart.

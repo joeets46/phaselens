@@ -96,7 +96,7 @@ def build(project_root, manifest_file, output_root=None):
         building.mkdir(parents=True)
         write_parquet(bundle["rows"], building / PARQUET_FILE)
         _check_written_file(building / PARQUET_FILE, bundle["rows"])
-        artifact = _artifact_record(
+        artifact = artifact_record(
             building / PARQUET_FILE, f"{relative_directory}/{PARQUET_FILE}"
         )
         metadata = {
@@ -114,7 +114,7 @@ def build(project_root, manifest_file, output_root=None):
             "columns": [{"name": name, "type": kind} for name, kind in COLUMNS],
             "composite_key": list(COMPOSITE_KEY),
             "row_count": len(bundle["rows"]),
-            "metric_totals": _totals(bundle["rows"]),
+            "metric_totals": totals_of(bundle["rows"]),
             "consumed_metric_files": bundle["consumed_metric_files"],
             "verified_raw_inputs": bundle["verified_raw_inputs"],
             "duckdb_version": duckdb.__version__,
@@ -126,7 +126,7 @@ def build(project_root, manifest_file, output_root=None):
         directory.mkdir(parents=True, exist_ok=True)
         (directory / METADATA_FILE).unlink(missing_ok=True)
         os.replace(building / PARQUET_FILE, directory / PARQUET_FILE)
-        if _artifact_record(directory / PARQUET_FILE, artifact["path"]) != artifact:
+        if artifact_record(directory / PARQUET_FILE, artifact["path"]) != artifact:
             raise AnalyticsError(
                 f"{directory / PARQUET_FILE}: the published file differs from the file "
                 "that was checked; no build metadata was published"
@@ -137,7 +137,7 @@ def build(project_root, manifest_file, output_root=None):
     return directory, metadata
 
 
-def _artifact_record(path, relative_path):
+def artifact_record(path, relative_path):
     """Path, SHA-256 and size of a file, as stored in the build metadata."""
     data = Path(path).read_bytes()
     return {
@@ -182,8 +182,8 @@ def load_bundle(project_root, manifest_file):
             }
         )
 
-    summary = _json_object(contents["run_summary.json"], "run_summary.json")
-    diagnostics = _json_object(contents["diagnostics.json"], "diagnostics.json")
+    summary = json_object(contents["run_summary.json"], "run_summary.json")
+    diagnostics = json_object(contents["diagnostics.json"], "diagnostics.json")
     contract_version = summary.get("metric_contract_version")
     if not _is_integer(contract_version) or contract_version < 1:
         raise AnalyticsError("run_summary.json: metric_contract_version is not a positive integer")
@@ -284,7 +284,7 @@ def validate_rows(csv_bytes, commit_sha, match_id, contract_version):
         )
     if not rows:
         raise AnalyticsError("metrics CSV: has no rows")
-    return sorted(rows, key=_key_of)
+    return sorted(rows, key=key_of)
 
 
 def reconcile(rows, summary):
@@ -294,10 +294,10 @@ def reconcile(rows, summary):
             f"run_summary.json records {summary.get('eligible_player_count')} eligible "
             f"players but the CSV has {len(rows)} rows"
         )
-    if summary.get("metric_totals") != _totals(rows):
+    if summary.get("metric_totals") != totals_of(rows):
         raise AnalyticsError(
             f"run_summary.json records totals {summary.get('metric_totals')} but the CSV "
-            f"adds up to {_totals(rows)}"
+            f"adds up to {totals_of(rows)}"
         )
     by_team = {}
     for row in rows:
@@ -306,7 +306,7 @@ def reconcile(rows, summary):
         {
             "team_id": team_id,
             "eligible_player_count": len(team_rows),
-            "metric_totals": _totals(team_rows),
+            "metric_totals": totals_of(team_rows),
         }
         for team_id, team_rows in sorted(by_team.items())
     ]
@@ -377,13 +377,24 @@ def _check_written_file(path, rows):
 def run_query(project_root, manifest_file, name):
     """Run one of the fixed queries against a match's published Parquet file.
 
-    Returns (column names, rows). Before the Parquet file is read, the raw
-    inputs, the metrics bundle and the Parquet file itself are checked
-    against what was recorded. A query never rebuilds or replaces anything.
+    Returns (column names, rows). The file is read only after
+    `verify_published` has passed. A query never rebuilds or replaces anything.
     """
-    project_root = Path(project_root)
     if name not in QUERIES:
         raise AnalyticsError(f"unknown query {name!r}; choose one of {', '.join(QUERIES)}")
+    _, _, parquet = verify_published(project_root, manifest_file)
+    return query_file(parquet, name)
+
+
+def verify_published(project_root, manifest_file):
+    """Check a match's published output and everything it was built from.
+
+    The raw inputs against the manifest, the metrics files against the
+    hashes recorded at build time, and the Parquet file against its
+    recorded checksum. Returns (manifest, build metadata, Parquet path).
+    Nothing is rebuilt or replaced.
+    """
+    project_root = Path(project_root)
     manifest = read_manifest(manifest_file)
     commit_sha = manifest["source"]["commit_sha"]
     match_id = manifest["selection"]["match_id"]
@@ -418,19 +429,19 @@ def run_query(project_root, manifest_file, name):
         raise AnalyticsError(
             f"{parquet}: the Parquet file is missing although its build metadata exists. {_REBUILD}"
         )
-    found = _artifact_record(parquet, artifact["path"])
+    found = artifact_record(parquet, artifact["path"])
     if found != artifact:
         raise AnalyticsError(
             f"{parquet}: does not match the checksum recorded when it was built "
             f"(recorded {artifact['size_bytes']} bytes, sha256 {artifact['sha256']}; found "
             f"{found['size_bytes']} bytes, sha256 {found['sha256']}). Nothing was changed. {_REBUILD}"
         )
-    return query_file(parquet, name)
+    return manifest, metadata, parquet
 
 
 def _checked_metadata(path, relative_directory, commit_sha, match_id):
     """Load build metadata and require the version and fields a query relies on."""
-    metadata = _json_object(path.read_bytes(), METADATA_FILE)
+    metadata = json_object(path.read_bytes(), METADATA_FILE)
     version = metadata.get("build_metadata_version")
     if version is None:
         raise AnalyticsError(
@@ -471,16 +482,16 @@ def _checked_metadata(path, relative_directory, commit_sha, match_id):
     return metadata
 
 
-def query_sql(name):
-    """The SQL text of a fixed query."""
-    return resources.files("phaselens").joinpath("sql", QUERIES[name]).read_text(encoding="utf-8")
+def query_sql(name, sql_files=QUERIES):
+    """The SQL text of a fixed query from `sql_files` (name -> file in sql/)."""
+    return resources.files("phaselens").joinpath("sql", sql_files[name]).read_text(encoding="utf-8")
 
 
-def query_file(parquet_path, name):
+def query_file(parquet_path, name, sql_files=QUERIES):
     """Run a fixed query against one Parquet file; returns (column names, rows)."""
     with _duckdb_errors(parquet_path, "query"), duckdb.connect(":memory:") as connection:
         connection.read_parquet(str(parquet_path)).create_view(TABLE)
-        result = connection.execute(query_sql(name))
+        result = connection.execute(query_sql(name, sql_files))
         return [column[0] for column in result.description], result.fetchall()
 
 
@@ -508,15 +519,15 @@ def _position(column):
     return [name for name, _ in COLUMNS].index(column)
 
 
-def _key_of(row):
+def key_of(row):
     return tuple(row[_position(column)] for column in COMPOSITE_KEY)
 
 
-def _totals(rows):
+def totals_of(rows):
     return {name: sum(row[_position(name)] for row in rows) for name in metrics.METRIC_NAMES}
 
 
-def _json_object(data, name):
+def json_object(data, name):
     try:
         value = json.loads(data)
     except ValueError as error:

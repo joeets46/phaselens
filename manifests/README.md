@@ -67,3 +67,10 @@ file is left as found. A file that no manifest records is never adopted.
 | Manifest | Match |
 |---|---|
 | `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` | UEFA Euro 2024, Spain v England, 2024-07-14 |
+| `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3942752.json` | UEFA Euro 2024, Spain v France, 2024-07-09 |
+| `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3942819.json` | UEFA Euro 2024, Netherlands v England, 2024-07-10 |
+| `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3942226.json` | UEFA Euro 2024, Spain v Germany, 2024-07-05 |
+| `statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3942349.json` | UEFA Euro 2024, Portugal v France, 2024-07-05 |
+
+The four later manifests reuse the competition index and match list
+recorded by the first, with their original retrieval times.

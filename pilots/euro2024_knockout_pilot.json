@@ -1,0 +1,8 @@
+{
+  "pilot_format_version": 1,
+  "source_commit": "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb",
+  "competition_id": 55,
+  "season_id": 282,
+  "match_ids": [3943043, 3942752, 3942819, 3942226, 3942349],
+  "selection_rule": "UEFA Euro 2024 (competition 55, season 282) at the pinned commit: the final already ingested (3943043), both matches whose competition_stage.name is 'Semi-finals', and the first two matches whose competition_stage.name is 'Quarter-finals' when sorted by match_date and then match_id. Taken from the locally stored, manifest-verified match list. Matches were not chosen or avoided for their length."
+}

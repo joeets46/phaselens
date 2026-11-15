@@ -1,0 +1,74 @@
+{
+  "manifest_format_version": 1,
+  "source": {
+    "name": "StatsBomb Open Data",
+    "repository_url": "https://github.com/hudl/open-data",
+    "commit_sha": "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb"
+  },
+  "selection": {
+    "competition_id": 55,
+    "season_id": 282,
+    "match_id": 3942226
+  },
+  "match_metadata": {
+    "match_id": 3942226,
+    "match_date": "2024-07-05",
+    "competition": {
+      "competition_id": 55,
+      "competition_name": "UEFA Euro"
+    },
+    "season": {
+      "season_id": 282,
+      "season_name": "2024"
+    },
+    "home_team": {
+      "home_team_id": 772,
+      "home_team_name": "Spain"
+    },
+    "away_team": {
+      "away_team_id": 770,
+      "away_team_name": "Germany"
+    }
+  },
+  "files": [
+    {
+      "source_path": "data/competitions.json",
+      "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/competitions.json",
+      "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/competitions.json",
+      "retrieved_at_utc": "2026-11-15T01:59:06Z",
+      "sha256": "e6cd42f5d8956d6aa30fb917ce8d4c3b3df1879a93f02f8feba820930a6971fa",
+      "size_bytes": 34887
+    },
+    {
+      "source_path": "data/matches/55/282.json",
+      "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/matches/55/282.json",
+      "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/matches/55/282.json",
+      "retrieved_at_utc": "2026-11-15T01:59:06Z",
+      "sha256": "70aa07d8a73e899d501c3edcd39b4bea0d4ae1d48bce7b59c4619869a13adc1b",
+      "size_bytes": 93280
+    },
+    {
+      "source_path": "data/lineups/3942226.json",
+      "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/lineups/3942226.json",
+      "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/lineups/3942226.json",
+      "retrieved_at_utc": "2026-11-15T10:00:29Z",
+      "sha256": "ad20455a175e9a6c76212807a7cc710396b56dac2a809576a6df4db41371240c",
+      "size_bytes": 30191
+    },
+    {
+      "source_path": "data/events/3942226.json",
+      "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/events/3942226.json",
+      "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/events/3942226.json",
+      "retrieved_at_utc": "2026-11-15T10:00:31Z",
+      "sha256": "e4e0aba5eecdc7d136a54173fc5a3a51b3f179efc5e815be3aa8291e0ae5437c",
+      "size_bytes": 3816941
+    }
+  ],
+  "three_sixty_check": {
+    "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/three-sixty/3942226.json",
+    "method": "HEAD",
+    "result": "present",
+    "checked_at_utc": "2026-11-15T10:00:31Z",
+    "downloaded": false
+  }
+}
