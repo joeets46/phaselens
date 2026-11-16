@@ -22,6 +22,29 @@ It does not:
 - show tracking data, movement, speed, or anything between events;
 - name the anonymous players in a frame.
 
+## Data preparation
+
+The dashboard only reads files the pipeline has prepared. From the
+project root, run these once, in this order:
+
+| Step | Command | Network |
+|---|---|---|
+| 1. Five-match pilot: ingest, profile, metrics, Parquet, combined table | `uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json` | Yes, for source files not yet on disk; files already on disk and recorded in a manifest are verified and reused |
+| 2. The final's three-sixty file | `uv run phaselens three-sixty-ingest --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` | Yes, the first time; later runs verify the local file |
+| 3. The final's saved spatial context (comparison only) | `uv run phaselens three-sixty-context --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` | No |
+
+Step 3 is optional for the dashboard: the context is recomputed in
+memory, and the saved file is only compared with it.
+
+Then check the inputs, offline and without writing anything:
+
+```
+uv run phaselens dashboard-check
+```
+
+It prints "Ready." and exits with 0 when both views can open. Otherwise
+it names the command to run for each missing input and exits with 1.
+
 ## Setup and launch
 
 From the project root:
@@ -31,10 +54,12 @@ uv sync --group dashboard
 uv run --group dashboard streamlit run src/phaselens/dashboard_app.py
 ```
 
-Then open http://127.0.0.1:8501. The prepared data must already exist;
-if it does not, the app says which command to run. On a first run
-Streamlit may ask for an e-mail address in the terminal; it is optional
-and Enter skips it.
+Then open http://127.0.0.1:8501. If an input is missing, the app says
+which command to run. On a first run Streamlit may ask for an e-mail
+address in the terminal; it is optional and Enter skips it. After a
+change to the code, stop the server and start it again: a running
+server can keep an older module. More fixes are under "Troubleshooting"
+in the [README](../README.md).
 
 ## Stopping the server
 
@@ -58,7 +83,12 @@ pitch (every symbol explained), and terms. The page stays as it was.
 statuses, words such as "not computed" and yes/no, and event-type and
 position names. Team and player names are shown as the source records
 them, and field names in the technical details stay in English.
-Switching language keeps the selected match, filters, and action.
+Switching language keeps the selected match, view, filters, and action,
+and every menu then shows its choice in the new language (checks BC-05
+and BC-14 of the [browser checklist](browser_checklist.md)). The app
+keeps each choice apart from the menu itself and restores it while it is
+still available; a filter or action that is no longer available falls
+back to "All …" or to the list's default action.
 
 **Match overview** (default view)
 
@@ -88,7 +118,11 @@ Switching language keeps the selected match, filters, and action.
    clock of any substitution ("on 67:19", "off 67:19"). No playing time
    is calculated; see "Player list" below.
 2. Pick an action; the label shows match clock, half, action type, and
-   player. The list opens on the first action that has a 360° snapshot.
+   player. When two actions in the list would share a label (both
+   teams' Starting XI, for example), the team's name is added, and a
+   number if that is not enough. The list opens on the first action
+   that has a 360° snapshot; a chosen action stays selected while it
+   remains in the filtered list.
    The ‹ and › buttons beside it step to the previous or next action in
    the filtered list, in its existing order; they are named "Previous
    action" and "Next action" for screen readers.
@@ -174,6 +208,10 @@ for minutes played" in [schema profile](schema_profile.md)).
 
 ## Manual browser checks
 
+The step-by-step checks, with expected results and a results log per
+commit, are in the [browser checklist](browser_checklist.md). This
+table is the summary of the last confirmed results.
+
 | Check | Status |
 |---|---|
 | Overview totals for the final | Passed (user, in a browser, earlier layout) |
@@ -191,6 +229,9 @@ for minutes played" in [schema profile](schema_profile.md)).
 | Previous / next action buttons | Passed (user, in a browser) |
 | One table per team; column-header definitions | Passed (user, in a browser) |
 | Layout at a narrow window (pitch scrolls inside its card) | Passed (user, in a browser) |
+| Language changes keep the chosen action and action type, with labels in the active language (BC-05, BC-14) | Passed (user, in a browser) |
+| Actions that would share a label are listed with team names and can each be chosen (BC-08) | Passed (user, in a browser) |
+| Language changes keep the chosen team and player, with labels in the active language (BC-14) | Passed (user, in a browser) |
 
 Rows marked "earlier layout" were checked before the M10 presentation
 changes. Automated tests (an in-process app test and plot tests) and

@@ -1,8 +1,11 @@
 """The command line workflow: discover, ingest, rerun, and fail clearly."""
 
+from pathlib import Path
+
 import pytest
 
 from phaselens import cli, statsbomb
+from phaselens.dashboard_data import FINAL_COMMIT
 from phaselens.fetch import FetchError
 from synthetic import COMMIT, EVENTS_PATH, files_under, source_url
 
@@ -78,3 +81,42 @@ def test_ingest_outside_a_project_root_is_refused(tmp_path, monkeypatch, capsys)
     monkeypatch.chdir(tmp_path)
     assert cli.main(["ingest", "--commit", COMMIT, *SELECTION]) == 1
     assert "project root" in capsys.readouterr().err
+
+
+# --- dashboard-check ----------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _fingerprint(root):
+    """Size and modification time of every prepared file: enough to see a write."""
+    return sorted((str(p), p.stat().st_size, p.stat().st_mtime_ns)
+                  for folder in ("data", "manifests") for p in (root / folder).rglob("*") if p.is_file())
+
+
+def test_dashboard_check_without_inputs_names_the_commands_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    (tmp_path / "pyproject.toml").write_text("")
+    monkeypatch.chdir(tmp_path)
+    assert cli.main(["dashboard-check"]) == 1
+    output = capsys.readouterr()
+    assert "Match overview  missing" in output.out and "360 moments     missing" in output.out
+    assert "run: uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json" in output.out
+    assert "run: uv run phaselens three-sixty-ingest --manifest manifests/" in output.out
+    assert "Not ready" in output.err
+    assert files_under(tmp_path) == ["pyproject.toml"]
+
+
+def test_dashboard_check_on_the_prepared_data_is_ready_and_writes_nothing(monkeypatch, capsys):
+    needed = [PROJECT_ROOT / "pilots/euro2024_knockout_pilot.json",
+              PROJECT_ROOT / f"manifests/statsbomb/open-data/{FINAL_COMMIT}/match_3943043.three_sixty.json",
+              PROJECT_ROOT / f"data/processed/analytics/{FINAL_COMMIT}/pilots/euro2024_knockout_pilot/build_metadata.json"]
+    if not all(path.is_file() for path in needed):
+        pytest.skip("the prepared pilot and three-sixty data are not on disk")
+    monkeypatch.chdir(PROJECT_ROOT)
+    before = _fingerprint(PROJECT_ROOT)
+    assert cli.main(["dashboard-check"]) == 0
+    output = capsys.readouterr().out
+    assert "Match overview  ready    5 matches, 156 player-match rows" in output
+    assert "360 moments     ready    match 3943043 (final only)" in output
+    assert "Ready. Start the dashboard with: uv run --group dashboard streamlit run" in output
+    assert _fingerprint(PROJECT_ROOT) == before

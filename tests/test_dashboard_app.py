@@ -6,6 +6,7 @@ unless the dashboard group is installed and the real prepared data is on
 disk. The app only reads, so the data is left unchanged.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,9 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from phaselens import dashboard_data as data  # noqa: E402
+from phaselens import pilot, statsbomb  # noqa: E402
+from phaselens.ingest import manifest_path, parse_json_array, read_manifest, read_verified_files  # noqa: E402
+from phaselens.metrics import METRIC_NAMES  # noqa: E402
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP = PROJECT_ROOT / "src/phaselens/dashboard_app.py"
@@ -65,6 +69,50 @@ def test_overview_shows_the_match_header_comparison_and_player_rows(app):
     assert not app.exception
     captions = texts(app.caption)
     assert "not normalized" in captions and "not ratings" in captions and "StatsBomb Open Data" in captions
+
+
+def test_every_pilot_match_shows_its_verified_totals_teams_score_and_rows(app):
+    """Each of the five matches, checked against sources the app does not use for this check.
+
+    Team totals come straight from the verified pilot query; teams from the
+    match manifest; the score from the verified match-list file that the
+    manifest records, since the manifest itself holds no score.
+    """
+    pilot_file = PROJECT_ROOT / data.PILOT_FILE
+    commit = pilot.load_pilot(PROJECT_ROOT, pilot_file)["source_commit"]
+    columns, rows = pilot.run_pilot_query(PROJECT_ROOT, pilot_file, "team-totals")
+    totals = {(row["match_id"], row["team_id"]): row for row in (dict(zip(columns, r)) for r in rows)}
+    seen, shown_rows = [], 0
+    for index in range(len(app.selectbox(key="match").options)):
+        app.selectbox(key="match").select_index(index).run()
+        assert not app.exception, app.exception
+        match_id = app.selectbox(key="match").value
+        seen.append(match_id)
+
+        manifest = read_manifest(manifest_path(PROJECT_ROOT, commit, match_id))
+        meta, selection = manifest["match_metadata"], manifest["selection"]
+        home_id, away_id = meta["home_team"]["home_team_id"], meta["away_team"]["away_team_id"]
+        list_path = statsbomb.matches_path(selection["competition_id"], selection["season_id"])
+        listed = parse_json_array(read_verified_files(PROJECT_ROOT, manifest)[list_path], list_path)
+        record = next(m for m in listed if m["match_id"] == match_id)
+        markdown = texts(app.markdown)
+        assert meta["home_team"]["home_team_name"] in markdown and meta["away_team"]["away_team_name"] in markdown
+        assert f"{record['home_score']} – {record['away_score']}" in markdown
+
+        shown_home = re.findall(r'<div class="v home">([^<]*)</div>', markdown)
+        shown_away = re.findall(r'<div class="v away">([^<]*)</div>', markdown)
+        assert shown_home == [str(totals[(match_id, home_id)][metric]) for metric in METRIC_NAMES]
+        assert shown_away == [str(totals[(match_id, away_id)][metric]) for metric in METRIC_NAMES]
+
+        assert len(app.dataframe) == 2
+        tables = [table.value for table in app.dataframe]
+        assert [int(table["team_id"].iloc[0]) for table in tables] == sorted([home_id, away_id])  # team-id order
+        for table in tables:
+            assert table["team_id"].nunique() == 1
+            assert list(table["player_id"]) == sorted(table["player_id"])  # player-id order, not a ranking
+        shown_rows += sum(len(table) for table in tables)
+    assert sorted(seen) == sorted(pilot.load_pilot(PROJECT_ROOT, pilot_file)["match_ids"])
+    assert shown_rows == 156
 
 
 def test_explorer_shows_an_action_without_a_snapshot_as_not_computed(app):
@@ -136,6 +184,133 @@ def test_language_switch_translates_the_interface_and_keeps_the_selection(app):
     assert "Pressing" in app.selectbox(key="type").options
     app.selectbox(key="lang").set_value("en").run()
     assert app.toggle(key="radii").label.startswith("Distance rings")
+
+
+# The action selector keeps the user's choice in its own session key (BC-05):
+# in a browser, a language change could reset the selector to its default.
+# AppTest does not run the browser's selector, so the reset is simulated by
+# writing another value into the selector's state.
+
+
+def shown_label(app):
+    selector = app.selectbox(key="event")
+    return selector.options[selector.index]
+
+
+def test_a_chosen_action_survives_language_changes_and_is_labelled_in_each_language(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    app.selectbox(key="event").select_index(4).run()
+    chosen = app.selectbox(key="event").value
+    assert app.session_state["event_choice"] == chosen
+    for language, type_name in (("tr", "Pres"), ("de", "Pressing"), ("en", "Pressure"), ("tr", "Pres")):
+        app.selectbox(key="lang").set_value(language).run()
+        assert not app.exception
+        assert app.selectbox(key="event").value == chosen
+        assert app.session_state["event_choice"] == chosen
+        assert f" · {type_name} · " in shown_label(app)  # the label is in the active language
+
+
+def test_a_lost_selector_value_is_restored_from_the_stored_choice(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    app.selectbox(key="event").select_index(4).run()
+    chosen = app.selectbox(key="event").value
+    other = data.filter_events(data.load_explorer(PROJECT_ROOT)["events"], "Pressure")[0]["id"]
+    assert other != chosen
+    app.session_state["event"] = other  # what a browser reset to the default looks like
+    app.selectbox(key="lang").set_value("de").run()
+    assert not app.exception
+    assert app.selectbox(key="event").value == chosen
+
+
+def test_a_choice_outside_the_filtered_list_falls_back_to_the_default(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    app.selectbox(key="event").select_index(4).run()
+    chosen = app.selectbox(key="event").value
+    loaded = data.load_explorer(PROJECT_ROOT)
+    starting = data.filter_events(loaded["events"], "Starting XI")
+    default = next((e["id"] for e in starting if loaded["context_by_event"][e["id"]]["frame_available"]),
+                   starting[0]["id"])
+    app.selectbox(key="type").set_value("Starting XI").run()
+    assert not app.exception
+    assert chosen not in {e["id"] for e in starting}
+    assert app.selectbox(key="event").value == default  # the existing default: first with a snapshot, else first
+    app.selectbox(key="lang").set_value("de").run()
+    assert not app.exception
+    assert app.selectbox(key="event").value == default  # and it stays through a language change
+    app.selectbox(key="type").set_value("Pressure").run()
+    assert app.selectbox(key="event").value == chosen  # available again, so the choice is restored
+
+
+def test_actions_with_the_same_label_get_distinct_labels(app):
+    explorer(app).selectbox(key="type").set_value("Starting XI").run()
+    options = app.selectbox(key="event").options
+    assert len(options) == len(set(options)) == 2
+    assert options[0].endswith(" · Spain") and options[1].endswith(" · England")  # team names as recorded
+    app.selectbox(key="event").select_index(1).run()
+    england = app.selectbox(key="event").value
+    app.selectbox(key="lang").set_value("tr").run()
+    assert app.selectbox(key="event").value == england
+    assert shown_label(app).endswith(" · England") and "İlk 11" in shown_label(app)
+
+
+def test_previous_and_next_update_the_stored_choice(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    ids = [e["id"] for e in data.filter_events(data.load_explorer(PROJECT_ROOT)["events"], "Pressure")]
+    start = ids.index(app.selectbox(key="event").value)
+    app.button(key="event_next").click().run()
+    assert app.selectbox(key="event").value == app.session_state["event_choice"] == ids[start + 1]
+    app.button(key="event_prev").click().run()
+    assert app.selectbox(key="event").value == app.session_state["event_choice"] == ids[start]
+    app.selectbox(key="lang").set_value("tr").run()
+    assert app.selectbox(key="event").value == ids[start]
+
+
+def shown_option(app, key):
+    selector = app.selectbox(key=key)
+    return selector.options[selector.index]
+
+
+def test_the_action_type_filter_keeps_its_value_and_is_labelled_in_each_language(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    assert app.session_state["type_choice"] == "Pressure"
+    for language, label in (("tr", "Pres"), ("de", "Pressing"), ("en", "Pressure"), ("tr", "Pres")):
+        app.selectbox(key="lang").set_value(language).run()
+        assert not app.exception
+        assert app.selectbox(key="type").value == "Pressure"  # the source name stays the value
+        assert shown_option(app, "type") == label
+    app.selectbox(key="type").set_value("Ball Recovery").run()  # chosen while the interface is Turkish
+    assert shown_option(app, "type") == "Top kazanma"
+    for language, label in (("en", "Ball Recovery"), ("de", "Ballgewinn")):
+        app.selectbox(key="lang").set_value(language).run()
+        assert app.selectbox(key="type").value == "Ball Recovery"
+        assert shown_option(app, "type") == label
+
+
+def test_the_action_type_filter_is_restored_or_falls_back_safely(app):
+    explorer(app).selectbox(key="type").set_value("Pressure").run()
+    app.session_state["type"] = None  # what a browser reset to the default looks like
+    app.selectbox(key="lang").set_value("de").run()
+    assert app.selectbox(key="type").value == "Pressure"
+    # A kept value that is no longer an option is ignored: the selector keeps
+    # its current valid value, here "All actions". (AppTest cannot hold an
+    # invalid value in the selector itself.)
+    app.session_state["type_choice"] = "No such type"
+    app.session_state["type"] = None
+    app.selectbox(key="lang").set_value("en").run()
+    assert not app.exception
+    assert app.selectbox(key="type").value is None
+    assert app.selectbox(key="type").options[0] == "All actions"  # the label of the None option, in English
+    assert app.selectbox(key="event").value  # the action list still opens on its default
+
+
+def test_the_player_filter_keeps_its_value_across_language_changes(app):
+    explorer(app).selectbox(key="team").set_value(SPAIN).run()
+    app.selectbox(key="player").select_index(1).run()
+    goalkeeper = app.selectbox(key="player").value
+    for language, position in (("tr", "Kaleci"), ("de", "Torwart"), ("en", "Goalkeeper")):
+        app.selectbox(key="lang").set_value(language).run()
+        assert app.selectbox(key="player").value == goalkeeper
+        assert f" · {position} · " in shown_option(app, "player")  # recorded position, in the active language
 
 
 def test_turkish_overview_uses_football_terms(app):

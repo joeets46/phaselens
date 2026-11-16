@@ -3,7 +3,8 @@
 A football analytics data platform for studying players' off-ball
 contributions across phases of play.
 
-**Status:** Milestone 9 (local dashboard) is complete. Five
+**Status:** Milestone 11 (dashboard usability, repeatability, and
+documentation) is complete. Five
 matches of UEFA Euro 2024 are stored locally as unmodified source
 files, each is profiled, three event counts are computed per match
 against a written contract, and the per-match results are combined into
@@ -72,26 +73,38 @@ not need them.
 
 ```
 uv sync --group dashboard
+uv run phaselens dashboard-check
 uv run --group dashboard streamlit run src/phaselens/dashboard_app.py
 ```
 
-Run both from the project root, then open http://127.0.0.1:8501. Stop
-the server with Ctrl+C in that terminal. A walkthrough is in the
-[demo guide](docs/demo_guide.md). On a
-first run Streamlit may ask for an e-mail address in the terminal; it
-is optional and can be skipped with Enter. Note that a later plain
-`uv sync` removes the dashboard group again.
+Run all three from the project root, then open http://127.0.0.1:8501.
+Stop the server with Ctrl+C in that terminal.
 
-- **Match overview:** a match header from the verified match list, the
-  two teams' counts as paired comparison rows, and the player-match
-  rows of the pilot, read through the verified pilot queries.
-- **360° moments:** pick an action by type, team, and player (the
-  player list follows the team and runs from goalkeeper to attack, with
-  recorded positions and substitution times); see the visible players
-  of its snapshot on a pitch in team colours, the named event player,
-  the recorded action spot, the attacking direction, optional
-  5/10/20-unit rings and the recorded camera view, and the action's
-  spatial-context values, with all fields in an expander.
+`dashboard-check` runs the dashboard's own loaders without Streamlit:
+it reads and verifies the prepared files, never downloads or writes,
+and works offline. It prints "Ready." and exits with 0 when both views
+can open; otherwise it names the command to run for each missing input
+and exits with 1. How to prepare the inputs, in order, is in "Data
+preparation" in the [demo guide](docs/demo_guide.md), which also has a
+walkthrough. Repeatable manual checks are in the
+[browser checklist](docs/browser_checklist.md).
+
+- **Match overview:** a header with the match details, the teams and
+  the score as recorded in the verified match list, and a match menu;
+  the two teams' counts as paired comparison rows; and one player table
+  per team (Player ID last, short column headers with their full
+  definitions on hover), read through the verified pilot queries. All
+  five pilot matches are available.
+- **360° moments (the final only):** three-sixty data is prepared for
+  the final, so this view always shows Spain v England. Pick an action
+  by type, team, and player (the player list follows the team and runs
+  from goalkeeper to attack, with recorded positions and substitution
+  times), or step through the list with ‹ and ›. The pitch shows the
+  visible players of the snapshot in team colours, the named event
+  player, the recorded action spot, and the attacking direction, with
+  optional 5/10/20-unit rings and the recorded camera view; beside it
+  (or below it on a narrow window) are the action's spatial-context
+  values and ring counts. All fields are in an expander.
 - **Languages and guide:** the interface is available in English,
   Turkish, and German (menu at the top right), using common football
   terms in each language. Team and player names are shown as recorded;
@@ -121,9 +134,23 @@ What the app does and does not do:
   a firewall and does not block outgoing traffic. The app itself loads
   no external images, fonts, scripts, or data.
 
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| The page says data could not be loaded and verified | Run the command it names (or `uv run phaselens dashboard-check`), then press ⟳ |
+| `ModuleNotFoundError: No module named 'streamlit'` | A plain `uv sync` removed the dashboard group; run `uv sync --group dashboard` |
+| "Port 8501 is not available" | Another server is running; stop it with Ctrl+C in its terminal, or add `--server.port 8502` |
+| An error such as `AttributeError` after the code changed | The running server kept an older module; stop it with Ctrl+C and start it again |
+| The terminal asks for an e-mail address on the first run | Optional; press Enter to skip |
+| A change to the files on disk does not appear | Data is verified once per session; press ⟳ |
+
 ## What is planned
 
-No further milestone is approved. The long-term direction is in the
+Milestone 11 is complete: it made the existing dashboard easier to
+start, verify, and document, and keeps selections through language
+changes; it added no metric, data source, or analytical feature. No
+further milestone is approved. The long-term direction is in the
 [project brief](docs/project_brief.md); none of it beyond what is
 listed above is implemented.
 
@@ -147,10 +174,9 @@ listed above is implemented.
 
 Requires Python 3.13 or later and [uv](https://docs.astral.sh/uv/).
 The only runtime dependency is DuckDB; pytest is used for development.
-The optional `dashboard` group adds Streamlit; its interactive pitch
-uses Altair, which Streamlit installs. The group still declares
-Matplotlib, which nothing uses any more; declaring Altair and removing
-Matplotlib in `pyproject.toml` is pending.
+The optional `dashboard` group adds Streamlit and Matplotlib. The
+interactive pitch uses Altair, which Streamlit installs; Matplotlib
+only measures the width of the event player's name label on the pitch.
 
 ```
 uv sync          # create .venv and install the locked dependencies
@@ -470,6 +496,7 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
 - [Analytical layer](docs/analytical_layer.md)
 - [Three-sixty frames](docs/three_sixty.md)
 - [Demo guide](docs/demo_guide.md)
+- [Browser checklist](docs/browser_checklist.md)
 - [Manifest format](manifests/README.md)
 
 ## Data source and attribution

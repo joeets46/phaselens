@@ -97,6 +97,7 @@ uv run phaselens pilot-query --file <pilot file> --name <query>     # fixed pilo
 uv run phaselens three-sixty-ingest --manifest <path>   # retrieve once, then verify
 uv run phaselens three-sixty-profile --manifest <path>  # offline linkage/structure report
 uv run phaselens three-sixty-context --manifest <path>  # event-level spatial context, offline
+uv run phaselens dashboard-check   # verify the dashboard inputs; offline, writes nothing
 ```
 
 Spatial-context indicators follow "Exploratory event-level indicators"

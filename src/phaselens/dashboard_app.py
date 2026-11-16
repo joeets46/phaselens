@@ -8,6 +8,7 @@ quality and not tracking. Interface text comes from `dashboard_i18n`;
 team and player names are shown as recorded.
 """
 
+from collections import Counter
 from html import escape
 from pathlib import Path
 
@@ -261,9 +262,58 @@ def _status_chip(status, language):
     return (_chip(data.status_text(status, language), chip),)
 
 
+# A selector's user choice is kept under "<key>_choice", apart from the
+# selector's own state: when the language changes, the selector's labels
+# change, and the browser can then send back a label that no longer matches
+# any option, which resets the selector or leaves its old label on screen.
+# The selector is restored from the kept choice before it is created.
+EVENT_CHOICE = "event_choice"
+_MISSING = object()
+
+
+def _remember(key):
+    """A selector's on_change: the user picked a value."""
+    st.session_state[f"{key}_choice"] = st.session_state.get(key)
+
+
+def _restore(key, options, default):
+    """Set a selector's value before it exists, so it shows that value in the active language.
+
+    The value is the user's kept choice when it is still an option, else the
+    selector's current value when it is still an option, else `default`.
+    """
+    for candidate in (st.session_state.get(f"{key}_choice", _MISSING), st.session_state.get(key, _MISSING)):
+        if candidate is not _MISSING and candidate in options:
+            st.session_state[key] = candidate
+            return
+    st.session_state[key] = default
+
+
 def _step_event(ids, position):
     """Prev/next: select a neighbour in the filtered list, in its existing order."""
-    st.session_state["event"] = ids[position]
+    st.session_state["event"] = st.session_state[EVENT_CHOICE] = ids[position]
+
+
+def _unique_labels(events, language):
+    """One distinct label per action, in list order.
+
+    The selector identifies an option by its label, so two actions with the
+    same label (both teams' Starting XI, for example) could not be told
+    apart. A repeated label gets the team's name, as recorded, and if it is
+    still repeated, its position among the repeats.
+    """
+    labels = {e["id"]: data.event_label(e, language) for e in events}
+    repeated = Counter(labels.values())
+    for e in events:
+        if repeated[labels[e["id"]]] > 1:
+            labels[e["id"]] += f" · {(e.get('team') or {}).get('name') or '–'}"
+    repeated, seen = Counter(labels.values()), Counter()
+    for e in events:
+        base = labels[e["id"]]
+        if repeated[base] > 1:
+            seen[base] += 1
+            labels[e["id"]] = f"{base} ({seen[base]})"
+    return labels
 
 
 def explorer_view(root):
@@ -279,29 +329,36 @@ def explorer_view(root):
         st.subheader(t("filters", language))
         with st.container(horizontal=True, vertical_alignment="bottom", key="filter_row"):
             everything = data.filter_options(loaded["events"])
+            types = [None, *everything["types"]]
+            _restore("type", types, None)  # None is "All actions"
             type_name = st.selectbox(
-                t("event_type", language), [None, *everything["types"]], key="type",
+                t("event_type", language), types, key="type", on_change=_remember, args=("type",),
                 format_func=lambda v: t("all_types", language) if v is None else source_name(EVENT_TYPES, v, language))
             teams = dict(everything["teams"])
+            _restore("team", [None, *teams], None)  # None is "Both teams"
             team_id = st.selectbox(t("event_team", language), [None, *teams], key="team",
+                                   on_change=_remember, args=("team",),
                                    format_func=lambda v: t("all_teams", language) if v is None else str(teams[v]))
-            players = [pid for pid, _ in data.filter_options(loaded["events"], type_name, team_id)["players"]]
+            players = [None, *(pid for pid, _ in data.filter_options(loaded["events"], type_name, team_id)["players"])]
+            # A player without actions of the chosen type and team falls back to "All players".
+            _restore("player", players, None)
             player_id = st.selectbox(
-                t("event_player", language), [None, *players], key="player",
+                t("event_player", language), players, key="player", on_change=_remember, args=("player",),
                 format_func=lambda v: t("all_players", language) if v is None else data.player_label(squad[v], language))
             events = data.filter_events(loaded["events"], type_name, team_id, player_id)
             if events:
                 by_id = {e["id"]: e for e in events}
+                labels = _unique_labels(events, language)
                 # Open on the first action that has a snapshot, so the pitch is not empty by default.
                 first_frame = next((i for i, e in enumerate(events)
                                     if loaded["context_by_event"][e["id"]]["frame_available"]), 0)
                 ids = list(by_id)
-                # A valid kept choice wins anyway; index 0 then avoids Streamlit's
-                # default-plus-session-state warning after prev/next.
-                index = 0 if st.session_state.get("event") in by_id else first_frame
+                # The default is the first action with a snapshot.
+                _restore("event", by_id, ids[first_frame])
                 with st.container(horizontal=True, vertical_alignment="bottom", wrap=False, key="event_nav"):
-                    event = by_id[st.selectbox(t("event_pick", language, count=len(events)), ids, index=index,
-                                               format_func=lambda i: data.event_label(by_id[i], language), key="event")]
+                    event = by_id[st.selectbox(t("event_pick", language, count=len(events)), ids,
+                                               format_func=lambda i: labels[i], key="event",
+                                               on_change=_remember, args=("event",))]
                     position = ids.index(event["id"])
                     st.button(t("event_prev", language), icon=":material/chevron_left:", help=t("event_prev", language),
                               key="event_prev", disabled=position == 0, on_click=_step_event, args=(ids, position - 1))

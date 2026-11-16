@@ -5,7 +5,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from phaselens import analytics, metrics, pilot, statsbomb, three_sixty
+from phaselens import analytics, dashboard_data, metrics, pilot, statsbomb, three_sixty
 from phaselens.fetch import FetchError, fetch_bytes, url_exists
 from phaselens.ingest import (
     IngestError,
@@ -23,7 +23,7 @@ def main(argv=None):
     sys.stdout.reconfigure(errors="replace")
     args = _build_parser().parse_args(argv)
     try:
-        args.handler(args)
+        status = args.handler(args)  # a handler may return its own exit status
     except (
         FetchError,
         IngestError,
@@ -34,7 +34,7 @@ def main(argv=None):
     ) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
-    return 0
+    return 0 if status is None else status
 
 
 def _build_parser():
@@ -129,6 +129,12 @@ def _build_parser():
     )
     frames_context.add_argument("--manifest", required=True, help="manifest of the match")
     frames_context.set_defaults(handler=_three_sixty_context)
+
+    dashboard_check = commands.add_parser(
+        "dashboard-check",
+        help="check that the dashboard's inputs are present and verified (offline, writes nothing)",
+    )
+    dashboard_check.set_defaults(handler=_dashboard_check)
     return parser
 
 
@@ -331,6 +337,49 @@ def _three_sixty_context(args):
     print(f"Written to {directory.relative_to(project_root).as_posix()}/")
     for name in three_sixty.CONTEXT_FILES:
         print(f"  {name}")
+
+
+DASHBOARD_START = "uv run --group dashboard streamlit run src/phaselens/dashboard_app.py"
+
+
+def _dashboard_check(args):
+    """Run the dashboard's own loaders, which verify every input, without Streamlit.
+
+    They read and verify local files only: nothing is downloaded, written,
+    or rebuilt. Exit status 0 means both views can open; 1 means a command
+    printed here must be run first.
+    """
+    project_root = _project_root()
+    ready = True
+    print("Dashboard inputs (read-only check; nothing is downloaded or written):")
+    try:
+        overview = dashboard_data.load_overview(project_root)
+    except dashboard_data.DashboardDataError as error:
+        ready = False
+        print(f"  Match overview  missing  {str(error).splitlines()[0]}")
+        print(f"                           run: {error.command}")
+    else:
+        print(f"  Match overview  ready    {len(overview['matches'])} matches, "
+              f"{len(overview['player_rows'])} player-match rows, commit {overview['source_commit'][:8]}")
+    try:
+        explorer = dashboard_data.load_explorer(project_root)
+    except dashboard_data.DashboardDataError as error:
+        ready = False
+        print(f"  360 moments     missing  {str(error).splitlines()[0]}")
+        print(f"                           run: {error.command}")
+    else:
+        snapshots = sum(1 for row in explorer["context_by_event"].values() if row["frame_available"])
+        print(f"  360 moments     ready    match {explorer['match_id']} (final only): "
+              f"{len(explorer['events'])} actions, {snapshots} with a 360 snapshot")
+        if explorer["saved_csv"]["status"] != "ok":
+            # The saved CSV is a comparison only; the explorer works without it.
+            print(f"  Saved context   {explorer['saved_csv']['status']:<8} comparison only; to create it run: "
+                  f"uv run phaselens three-sixty-context --manifest {dashboard_data.FINAL_MANIFEST}")
+    if not ready:
+        print("Not ready: run the command(s) above, then check again.", file=sys.stderr)
+        return 1
+    print(f"Ready. Start the dashboard with: {DASHBOARD_START}")
+    return 0
 
 
 def _pilot_query(args):

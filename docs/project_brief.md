@@ -14,9 +14,9 @@ This is the long-term direction. None of it is implemented.
 
 ## Current state
 
-Milestones 0 to 10 are complete. The first match ingested from
-StatsBomb Open Data, and the one most of the documentation describes,
-is UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043),
+Milestones 0 to 11 are complete. The first
+match ingested from StatsBomb Open Data, and the one most of the
+documentation describes, is UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043),
 read at upstream commit `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
 
 Its match list, lineups, and events files have been profiled; the
@@ -42,7 +42,11 @@ A local, read-only dashboard was completed in M9: it shows the pilot
 results and the final's three-sixty frames and spatial context from
 verified data, and never downloads or writes. M10 polished its
 presentation only (layout, formatting, accessibility, and
-documentation) and added no analytical feature. See the
+documentation) and added no analytical feature. M11 added a read-only
+`dashboard-check` command, a repeatable
+[browser checklist](browser_checklist.md), a five-match Overview test,
+new-user documentation, and selections that survive language changes;
+it added no metric, data source, or analytical feature. See the
 [demo guide](demo_guide.md).
 
 ## Starting point
@@ -107,6 +111,7 @@ Each milestone starts only after explicit approval.
 | M8 | Event-level spatial context | One row per event of the final with nearest-opponent distance and radius counts of visible players around the actor | Complete |
 | M9 | Local dashboard | A read-only local app shows the pilot results and the final's frames and context from verified data | Complete |
 | M10 | Dashboard presentation polish | UI/UX, formatting, radius-label placement, responsive layout, accessibility, and documentation are improved, with no new analytical feature | Complete |
+| M11 | Dashboard usability, repeatability, and documentation | A read-only `dashboard-check` command, a repeatable browser checklist, a five-match Overview test, selections kept through language changes, and new-user documentation exist, with no new metric, data source, or analytical feature | Complete |
 
 ## Non-goals for now
 
