@@ -57,9 +57,15 @@ browser before this checklist existed, including the tooltip, zoom, and
 language-menu checks, are summarized under "Manual browser checks" in
 the [demo guide](demo_guide.md).
 
+The commit hashes below refer to the history as published. Before the
+first push, the history was rewritten to replace the author e-mail
+address; nothing else changed. The runs were recorded against the
+earlier hashes `ee60672` (now `4428f02`), `e79c454` (now `214a946`),
+and `1d452a0` (now `f38508f`).
+
 ### Run 1
 
-- Commit: `ee60672` plus the uncommitted M11 working tree
+- Commit: `4428f02` plus the uncommitted M11 working tree
 - Date: 2026-11-16
 - Browser: Chrome (headless), driven through the DevTools Protocol
 - Run by: automated headless run (Claude); not a person in a browser
@@ -82,7 +88,7 @@ the [demo guide](demo_guide.md).
 
 ### Run 2
 
-- Commit: `ee60672` plus the uncommitted M11 working tree, after the
+- Commit: `4428f02` plus the uncommitted M11 working tree, after the
   BC-05 fix
 - Date: 2026-11-16
 - Browser: Chrome (headless), driven through the DevTools Protocol
@@ -111,7 +117,7 @@ the filter itself is kept.
 
 ### Run 3
 
-- Commit: `ee60672` plus the uncommitted M11 working tree, after the
+- Commit: `4428f02` plus the uncommitted M11 working tree, after the
   filter language fix
 - Date: 2026-11-16
 - Browser: Chrome (headless), driven through the DevTools Protocol
@@ -140,7 +146,7 @@ and is fixed with it.
 
 ### Run 4 — by the user in a browser
 
-- Commit: `ee60672` plus the uncommitted M11 working tree, after the
+- Commit: `4428f02` plus the uncommitted M11 working tree, after the
   BC-05, BC-08, and BC-14 fixes
 - Date: 2026-11-16
 - Browser: the user's desktop browser
@@ -166,7 +172,7 @@ and is fixed with it.
 
 ### Run 5
 
-- Commit: `e79c454` plus the uncommitted M12 working tree (15-match
+- Commit: `214a946` plus the uncommitted M12 working tree (15-match
   pilot, Explorer match menu)
 - Date: 2026-11-17
 - Browser: Chrome (headless), driven through the DevTools Protocol
@@ -198,7 +204,7 @@ labels in each language.
 
 ### Run 6 — by the user in a browser
 
-- Commit: `1d452a0` (HEAD), served from http://127.0.0.1:8501
+- Commit: `f38508f` (then HEAD), served from http://127.0.0.1:8501
 - Date: 2026-11-17
 - Browser: Chrome
 - Run by: the user, in a browser; only the checks below marked
