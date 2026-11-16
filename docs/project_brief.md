@@ -14,7 +14,7 @@ This is the long-term direction. None of it is implemented.
 
 ## Current state
 
-Milestones 0 to 11 are complete; M12 is in progress. The first
+Milestones 0 to 12 are complete. The first
 match ingested from StatsBomb Open Data, and the one most of the
 documentation describes, is UEFA Euro 2024, Spain v England, 2024-07-14 (`match_id` 3943043),
 read at upstream commit `4b73468fc5b0f1950f9f66fada70ad3a4f9327cb`.
@@ -119,7 +119,7 @@ Each milestone starts only after explicit approval.
 | M9 | Local dashboard | A read-only local app shows the pilot results and the final's frames and context from verified data | Complete |
 | M10 | Dashboard presentation polish | UI/UX, formatting, radius-label placement, responsive layout, accessibility, and documentation are improved, with no new analytical feature | Complete |
 | M11 | Dashboard usability, repeatability, and documentation | A read-only `dashboard-check` command, a repeatable browser checklist, a five-match Overview test, selections kept through language changes, and new-user documentation exist, with no new metric, data source, or analytical feature | Complete |
-| M12 | Euro 2024 knockout stage | The fifteen knockout-stage matches are ingested and verified with their three-sixty data, and the dashboard, its checks, and the documentation cover them, with no new metric or analytical feature | In progress |
+| M12 | Euro 2024 knockout stage | The fifteen knockout-stage matches are ingested and verified with their three-sixty data, and the dashboard, its checks, and the documentation cover them, with no new metric or analytical feature | Complete |
 
 ## Non-goals for now
 

@@ -3,8 +3,8 @@
 A football analytics data platform for studying players' off-ball
 contributions across phases of play.
 
-**Status:** Milestone 12 (the whole Euro 2024 knockout stage) is in
-progress. The fifteen knockout-stage matches of UEFA Euro 2024 are
+**Status:** Milestone 12 (the whole Euro 2024 knockout stage) is
+complete. The fifteen knockout-stage matches of UEFA Euro 2024 are
 stored locally as unmodified source files, each is profiled, three
 event counts are computed per match against a written contract, and the
 per-match results are combined into one typed Parquet table queried
@@ -153,9 +153,10 @@ What the app does and does not do:
 
 ## What is planned
 
-Milestone 12 is in progress: it extends the pilot, its three-sixty
-data, and the dashboard to the fifteen knockout-stage matches, with the
-same verification, and adds no metric or analytical feature. The long-term direction is in the
+Milestone 12 is complete: it extended the pilot, its three-sixty data,
+and the dashboard to the fifteen knockout-stage matches, with the same
+verification, and added no metric or analytical feature. No further
+milestone is approved. The long-term direction is in the
 [project brief](docs/project_brief.md); none of it beyond what is
 listed above is implemented.
 

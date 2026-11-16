@@ -195,3 +195,29 @@ empty "Choose an option" instead of "All actions", "Both teams", and
 "All players", because the "All" choice was stored as no value. The
 "All" option now has its own value, and an app test checks the three
 labels in each language.
+
+### Run 6 — by the user in a browser
+
+- Commit: `1d452a0` (HEAD), served from http://127.0.0.1:8501
+- Date: 2026-11-17
+- Browser: Chrome
+- Run by: the user, in a browser; only the checks below marked
+  "Passed" were run
+
+| ID | Result | Note |
+|---|---|---|
+| BC-01 | Passed | |
+| BC-02 | Not run | |
+| BC-03 | Passed | |
+| BC-04 | Not run | |
+| BC-05 | Not run | |
+| BC-06 | Not run | |
+| BC-07 | Not run | |
+| BC-08 | Not run | |
+| BC-09 | Not run | |
+| BC-10 | Not run | |
+| BC-11 | Not run | |
+| BC-12 | Not run | |
+| BC-13 | Passed | |
+| BC-14 | Not run | |
+| BC-15 | Passed | |
