@@ -1,0 +1,24 @@
+{
+  "pilot_format_version": 1,
+  "source_commit": "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb",
+  "competition_id": 55,
+  "season_id": 282,
+  "match_ids": [
+    3943043,
+    3940878,
+    3940983,
+    3941017,
+    3941018,
+    3941019,
+    3941020,
+    3941021,
+    3941022,
+    3942226,
+    3942349,
+    3942227,
+    3942382,
+    3942752,
+    3942819
+  ],
+  "selection_rule": "UEFA Euro 2024 (competition 55, season 282) at the pinned commit: every match whose competition_stage.name is 'Round of 16', 'Quarter-finals', 'Semi-finals', or 'Final', taken from the locally stored, manifest-verified match list. Order: the final first, then the other matches by match_date and then match_id. The five matches of euro2024_knockout_pilot are included; no match was chosen or avoided for any other reason."
+}

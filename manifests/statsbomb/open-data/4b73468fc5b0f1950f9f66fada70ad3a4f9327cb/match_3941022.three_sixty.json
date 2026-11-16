@@ -1,0 +1,31 @@
+{
+  "companion_format_version": 1,
+  "kind": "three_sixty_frames",
+  "source": {
+    "name": "StatsBomb Open Data",
+    "repository_url": "https://github.com/hudl/open-data",
+    "commit_sha": "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb"
+  },
+  "match_id": 3941022,
+  "event_source": {
+    "match_manifest": "manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3941022.json",
+    "events_file": {
+      "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/events/3941022.json",
+      "sha256": "6d8a1604a6db456e98279f1cb31cd4f556bb55bd6534bed18e293ca7e70246a5",
+      "size_bytes": 3172402
+    }
+  },
+  "head_check": {
+    "method": "HEAD",
+    "result": "present",
+    "checked_at_utc": "2026-11-16T20:47:30Z"
+  },
+  "file": {
+    "source_path": "data/three-sixty/3941022.json",
+    "source_url": "https://raw.githubusercontent.com/hudl/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/three-sixty/3941022.json",
+    "local_path": "data/raw/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/data/three-sixty/3941022.json",
+    "retrieved_at_utc": "2026-11-16T20:47:33Z",
+    "sha256": "76aeb27838edea6d62afe59869182c7ed6ca3fe0e7f40fcd422e4c4ac34b6757",
+    "size_bytes": 7665059
+  }
+}

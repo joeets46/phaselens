@@ -316,3 +316,41 @@ questions remain open.
 - The field list is what this file contains, not the provider's full
   schema.
 - A check that passes here may fail on another match.
+
+## Observed in the 15-match knockout-stage dataset
+
+The 15-match pilot (`pilots/euro2024_knockout_stage.json`, Milestone 12)
+added ten matches at the same commit. Comparing their event and lineup
+files with the five matches of the original pilot found the elements
+below, which none of those five matches contains. They were found by
+listing every event type and every JSON key path in the verified files.
+The work stopped deliberately at that point, because these elements had
+not been seen before, and continued only after the user approved this
+description.
+
+These are observed data elements. They are not new metrics or
+analytical features, and the metric contract and the dashboard code do
+not use them. The dashboard uses them in no calculation; its action
+filter names whatever event types the chosen match's file contains.
+
+| Element | Where it appears | Count | Matches |
+|---|---|---|---|
+| Event type 20 `Own Goal Against` | Event `type` | 3 | 3941018, 3941019, 3942382 (one each) |
+| Event type 25 `Own Goal For` | Event `type` | 3 | 3941018, 3941019, 3942382 (one each) |
+| `shot.saved_to_post` | Shot events | 3 | 3940878, 3941020, 3942382 |
+| `shot.saved_off_target` | Shot events | 1 | 3941020 |
+| `shot.open_goal` | Shot events | 3 | 3941017, 3942227, 3942382 |
+| `shot.follows_dribble` | Shot events | 1 | 3941020 |
+| `goalkeeper.shot_saved_to_post` | Goal Keeper events | 2 | 3940878, 3942382 |
+| `goalkeeper.penalty_saved_to_post` | Goal Keeper events | 1 | 3941020 |
+| `goalkeeper.shot_saved_off_target` | Goal Keeper events | 1 | 3941020 |
+
+Every one of the seven keys holds the value `true` wherever it appears.
+What each one means has not been checked against the provider's
+specification; that is not needed while nothing uses them, and must be
+done, with a page reference in [provider semantics](provider_semantics.md),
+before any of them is used. No new key appeared in the lineups files.
+In the same comparison, every event with `counterpress` exactly `true`
+outside the contract's supported types was a `Pass` whose `pass.type`
+is "Interception" (35 events in the 15 matches), and no `counterpress`
+value other than `true` occurred.

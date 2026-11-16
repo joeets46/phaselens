@@ -3,6 +3,11 @@
 What the three-sixty file of one match contains, and what it can and
 cannot support. Nothing here is a metric.
 
+Everything up to "Analytical questions" describes the final only. The
+three-sixty files of all fifteen knockout-stage matches are covered,
+match by match, in the separate last section, "Coverage in the 15-match
+knockout-stage dataset (Milestone 12)".
+
 | Item | Value |
 |---|---|
 | Match | UEFA Euro 2024 final, `match_id` 3943043 |
@@ -247,3 +252,38 @@ origin; their `actor_event_distance` shows the difference.
   an unobserved player is not an absent one.
 - Off-ball positioning between events, when no event and so no frame
   exists.
+
+## Coverage in the 15-match knockout-stage dataset (Milestone 12)
+
+Everything above describes the final. In Milestone 12 the three-sixty
+file of every match in `pilots/euro2024_knockout_stage.json` was
+retrieved, but only after the match manifest's `three_sixty_check.result`
+read "present": a three-sixty file is not assumed to exist. All 15
+results were "present". The 14 new files were retrieved once with
+`three-sixty-ingest` (117,984,051 bytes in total), each recorded in its
+own companion manifest; no match manifest changed. The counts below
+come from the `three-sixty-profile` and `three-sixty-context` outputs.
+
+| match_id | File bytes | File SHA-256 (first 16) | Frames | Events with a frame / all events | Context: computed / no_frame |
+|---|---|---|---|---|---|
+| 3943043 | 7,008,694 | 52f3c6ea54ac93d8 | 2,882 | 2,882 / 3,304 (87.23%) | 2,882 / 422 |
+| 3940878 | 8,237,849 | 6596aeb0d724cf30 | 3,269 | 3,269 / 3,852 (84.87%) | 3,269 / 583 |
+| 3940983 | 8,046,884 | f5699e0a48fcc3d1 | 3,187 | 3,187 / 3,640 (87.55%) | 3,187 / 453 |
+| 3941017 | 10,311,772 | da028a6ac63ca809 | 4,113 | 4,113 / 4,764 (86.34%) | 4,113 / 651 |
+| 3941018 | 9,397,899 | d7b7c975766b24c1 | 3,581 | 3,581 / 3,948 (90.70%) | 3,581 / 367 |
+| 3941019 | 8,286,124 | 2c2859b39cd0cde5 | 3,486 | 3,486 / 3,943 (88.41%) | 3,486 / 457 |
+| 3941020 | 9,165,736 | dad72efa86064fc7 | 3,674 | 3,674 / 4,225 (86.96%) | 3,674 / 551 |
+| 3941021 | 5,271,480 | 62d92d41629c6c05 | 2,683 | 2,683 / 2,998 (89.49%) | 2,683 / 315 |
+| 3941022 | 7,665,059 | 76aeb27838edea6d | 3,116 | 3,116 / 3,720 (83.76%) | 3,116 / 604 |
+| 3942226 | 8,727,520 | 9add5e685c8efb28 | 4,031 | 4,031 / 4,463 (90.32%) | 4,031 / 432 |
+| 3942349 | 11,113,334 | a0575f0fdbd10c8a | 4,509 | 4,509 / 5,195 (86.79%) | 4,509 / 686 |
+| 3942227 | 10,989,120 | 3c2c8f94794f67c6 | 4,327 | 4,327 / 4,890 (88.49%) | 4,327 / 563 |
+| 3942382 | 7,125,168 | 7c03da9a14a9e5b4 | 2,839 | 2,839 / 3,417 (83.08%) | 2,839 / 578 |
+| 3942752 | 6,044,304 | 04b9c58ecc64bfd6 | 2,946 | 2,946 / 3,330 (88.47%) | 2,946 / 384 |
+| 3942819 | 7,601,802 | 3799e8622f59af05 | 2,967 | 2,967 / 3,503 (84.70%) | 2,967 / 536 |
+
+In every match each frame links to exactly one event (no duplicate
+`event_uuid`, no unmatched frame), and every context row is either
+`computed` or `no_frame`. Coverage is the share of source events with a
+frame; it describes what was recorded, not how much of a match was
+visible, and the observations in section B were made on the final only.
