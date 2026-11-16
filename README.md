@@ -3,18 +3,18 @@
 A football analytics data platform for studying players' off-ball
 contributions across phases of play.
 
-**Status:** Milestone 11 (dashboard usability, repeatability, and
-documentation) is complete. Five
-matches of UEFA Euro 2024 are stored locally as unmodified source
-files, each is profiled, three event counts are computed per match
-against a written contract, and the per-match results are combined into
-one typed Parquet table queried with DuckDB. For the final, the
-three-sixty positional snapshots are stored and described, and an
-exploratory event-level table of visible players around each event's
-actor is derived from them. A local dashboard shows these results. The
-counts
-are tested for correctness, not validated for football meaning. No
-player has been rated or ranked.
+**Status:** Milestone 12 (the whole Euro 2024 knockout stage) is in
+progress. The fifteen knockout-stage matches of UEFA Euro 2024 are
+stored locally as unmodified source files, each is profiled, three
+event counts are computed per match against a written contract, and the
+per-match results are combined into one typed Parquet table queried
+with DuckDB. For every one of the fifteen, the three-sixty positional
+snapshots are stored with a companion manifest, and an exploratory
+event-level table of visible players around each event's actor is
+derived from them; the final is the match they are described for in
+detail. A local dashboard shows these results. The counts are tested for
+correctness, not validated for football meaning. No player has been
+rated or ranked.
 
 ## What exists today
 
@@ -37,8 +37,9 @@ player has been rated or ranked.
   an ingested match and writes CSV and JSON
 - A typed Parquet copy of those counts and four fixed SQL queries run
   with DuckDB
-- The final's three-sixty file, stored with a companion manifest, and
-  an offline report of how it links to the events and what it contains
+- The three-sixty file of each knockout-stage match, stored with a
+  companion manifest, and an offline report of how it links to the
+  events and what it contains
 
 ## Three-sixty frames
 
@@ -47,8 +48,11 @@ uv run phaselens three-sixty-ingest --manifest manifests/statsbomb/open-data/4b7
 uv run phaselens three-sixty-profile --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json
 ```
 
-The first downloads the final's three-sixty file once and afterwards
-only verifies it; the match manifest is not changed. The second writes
+The first downloads the match's three-sixty file once and afterwards
+only verifies it; the match manifest is not changed. The commands are
+shown for the final; they are run the same way for every match whose
+manifest records `three_sixty_check.result` as "present" (all fifteen
+knockout-stage matches; see [three-sixty frames](docs/three_sixty.md)). The second writes
 a report to `data/processed/three_sixty/<commit_sha>/<match_id>/`
 without any network access.
 
@@ -94,9 +98,11 @@ walkthrough. Repeatable manual checks are in the
   the two teams' counts as paired comparison rows; and one player table
   per team (Player ID last, short column headers with their full
   definitions on hover), read through the verified pilot queries. All
-  five pilot matches are available.
-- **360° moments (the final only):** three-sixty data is prepared for
-  the final, so this view always shows Spain v England. Pick an action
+  fifteen pilot matches are available.
+- **360° moments:** a match menu in the header lists only the pilot's
+  matches whose three-sixty data verified (companion manifest, file
+  hash, and frames); a match without it is not offered. A match is
+  loaded when it is chosen. Pick an action
   by type, team, and player (the player list follows the team and runs
   from goalkeeper to attack, with recorded positions and substitution
   times), or step through the list with ‹ and ›. The pitch shows the
@@ -147,10 +153,9 @@ What the app does and does not do:
 
 ## What is planned
 
-Milestone 11 is complete: it made the existing dashboard easier to
-start, verify, and document, and keeps selections through language
-changes; it added no metric, data source, or analytical feature. No
-further milestone is approved. The long-term direction is in the
+Milestone 12 is in progress: it extends the pilot, its three-sixty
+data, and the dashboard to the fifteen knockout-stage matches, with the
+same verification, and adds no metric or analytical feature. The long-term direction is in the
 [project brief](docs/project_brief.md); none of it beyond what is
 listed above is implemented.
 
@@ -399,17 +404,21 @@ not promised across DuckDB versions. Details, including what the
 validation does and does not guarantee, are in the
 [analytical layer](docs/analytical_layer.md) document.
 
-## Five-match pilot
+## Pilots
 
 ```
-uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json
-uv run phaselens pilot-query --file pilots/euro2024_knockout_pilot.json --name team-totals
+uv run phaselens pilot --file pilots/euro2024_knockout_stage.json
+uv run phaselens pilot-query --file pilots/euro2024_knockout_stage.json --name team-totals
 ```
 
-`pilot` runs the final, both semi-finals, and two quarter-finals of
-Euro 2024 one after another through the same per-match steps, then
-combines their verified Parquet tables into one table of 156
-player-match rows. It stops at the first failing match, names the match
+`pilots/euro2024_knockout_stage.json` names the fifteen matches of the
+Euro 2024 knockout stage (round of 16 to the final), chosen by stage
+from the verified match list; the dashboard reads it. `pilot` runs them
+one after another through the same per-match steps, then combines their
+verified Parquet tables into one table of 468 player-match rows. The
+original five-match pilot, `pilots/euro2024_knockout_pilot.json` (the
+final, both semi-finals, and two quarter-finals; 156 rows), is kept
+unchanged as the record of that earlier run. It stops at the first failing match, names the match
 and the step, and builds no combined output in that run. A rerun
 downloads nothing that is already verified on disk.
 
@@ -448,7 +457,7 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
 
 ## Limitations
 
-- Five real matches have been ingested, all knockout matches of one
+- Fifteen real matches have been ingested: the knockout stage of one
   tournament at one commit.
 - A raw file that no manifest records is never adopted. If a run is
   killed between writing files and writing its manifest, the leftover
@@ -470,21 +479,22 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   playing time, and are not validated for football meaning.
 - Player eligibility uses the Starting XI and substitution events. It
   is the participation contract supported today, not a general rule,
-  and it has been exercised on five real matches.
+  and it has been exercised on fifteen real matches.
 - The analytical layer holds one table for one match. Its checks show
   that the Parquet file equals the metrics CSV, that the CSV agrees
   with its summary on counts and totals, and that files still have the
   bytes recorded for them. A CSV edit that keeps every team's totals
   can pass the build. Checksums are not signatures: none of this
   proves where a file came from.
-- Three-sixty data has been retrieved and described for the final
-  only. Its positional entries carry no player identity beyond the
+- Three-sixty data has been retrieved for all fifteen matches and
+  described in detail for the final only; per-match coverage is in
+  [three-sixty frames](docs/three_sixty.md). Its positional entries carry no player identity beyond the
   actor, cover visible players at event moments, and say nothing about
   movement between events.
 - Resolving the latest commit uses the unauthenticated GitHub API,
   which is rate limited. Passing `--commit` avoids that request.
-- Five matches support pipeline development, not conclusions about
-  players or teams.
+- Fifteen knockout matches of one tournament support pipeline
+  development, not conclusions about players or teams.
 
 ## Documentation
 

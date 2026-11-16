@@ -25,7 +25,7 @@ Widths: **W** = 1440 px or wider, **M** = about 1024 px, **N** = about
 
 | ID | Action | Expected result | Width |
 |---|---|---|---|
-| BC-01 | Choose each of the five matches in the header menu | Each shows its teams, score, three comparison rows, and two team tables (Player ID last); no error | W, M |
+| BC-01 | Choose each pilot match in the header menu (all fifteen) | Each shows its teams, score, three comparison rows, and two team tables (Player ID last); no error | W, M |
 | BC-02 | Point at the headers "Pressures", "CP pressures", and "CP events" | Each shows its full definition, ending "Raw count, not a rating." | W |
 
 ### 360° moments
@@ -43,9 +43,10 @@ Switch to "360° moments" first.
 | BC-09 | Switch "Distance rings" off and on | The dashed 5/10/20 rings disappear and return; the ring table in the context card is unchanged | W |
 | BC-10 | Switch "Camera view" on and off | A light dashed area appears and disappears; while on, the line under the pitch adds that the camera view is as recorded and not checked | W |
 | BC-11 | Press ⟳ | The page reloads the data and shows the same view without an error | W |
-| BC-12 | With "Action type" on All actions, set "Team" to Spain and open "Player" | Only Spain players are offered, from the goalkeeper (Unai Simón Mendibil) to attack, with recorded positions and substitution times | W |
+| BC-12 | Look at the three filters before choosing anything; then, with "Action type" on All actions, set "Team" to Spain and open "Player" | The filters first read "All actions", "Both teams", and "All players" (never an empty "Choose an option"). Only Spain players are offered, from the goalkeeper (Unai Simón Mendibil) to attack, with recorded positions and substitution times | W |
 | BC-13 | Narrow the window to about 1024 px, then to about 390 px | At 1024 px the context card moves under the pitch with no overlap; at 390 px the page does not scroll sideways, the pitch scrolls sideways inside its card, and the player tables keep the name column in place | M, N |
 | BC-14 | In Türkçe, set "Action type" to Top kazanma, "Team" to Spain, and "Player" to Rodrigo; then switch to English, Deutsch, Türkçe, and English | Every filter keeps its value through every switch, and the menus show it in the active language: "Ball Recovery", "Ballgewinn", "Top kazanma"; the player's recorded position also changes language ("Right Defensive Midfield", "Rechter defensiver Mittelfeldspieler", "Sağ ön libero"); "Spain" stays as recorded | W |
+| BC-15 | In "360° moments", open the match menu in the header; choose a match other than the final, then switch to Türkçe and back to English | The menu lists only the pilot's matches with verified 360° data, final first (all fifteen at this commit); a match without it is never offered; the chosen match loads, its teams appear in the header and its actions in the action list, and it stays chosen through the language switches | W |
 
 ## Results
 
@@ -162,3 +163,35 @@ and is fixed with it.
 | BC-12 | Not run | |
 | BC-13 | Not run | |
 | BC-14 | Passed | |
+
+### Run 5
+
+- Commit: `e79c454` plus the uncommitted M12 working tree (15-match
+  pilot, Explorer match menu)
+- Date: 2026-11-17
+- Browser: Chrome (headless), driven through the DevTools Protocol
+- Run by: automated headless run (Claude); not a person in a browser
+
+| ID | Result | Note |
+|---|---|---|
+| BC-01 | Passed | All fifteen matches, two tables each, no error |
+| BC-02 | Passed | All three header definitions appeared on hover |
+| BC-03 | Passed | Dot and star tooltips as expected |
+| BC-04 | Passed | Scroll and drag changed the view; double-click restored it exactly |
+| BC-05 | Passed | The chosen action stayed through Türkçe, Deutsch, and English, with its label in each language |
+| BC-06 | Passed | Three tabs with text; closed cleanly |
+| BC-07 | Passed | Stepped through the list; ‹ and › disabled at the ends; accessible names present |
+| BC-08 | Passed | Pitch message and "not computed" values; both Starting XI actions listed with team names |
+| BC-09 | Passed | Three dashed rings off and on; ring table unchanged |
+| BC-10 | Passed | Camera area and its note appeared and disappeared |
+| BC-11 | Passed | Same view and action after reload; no error |
+| BC-12 | Passed | 15 Spain players, from Unai Simón Mendibil (Goalkeeper); the filters' "All …" labels were checked on a screenshot |
+| BC-13 | Passed | No overlap at 1024 px; at 390 px no page scroll sideways, pitch and tables scroll in place. The pinned name column was not checked (the table is drawn on a canvas) |
+| BC-14 | Passed | Type, team, and player kept through four switches, labelled in each language |
+| BC-15 | Passed | Fifteen matches listed, final first; Switzerland v Italy chosen, its teams in the header, kept through Türkçe and English |
+
+Found and fixed during this run: since M11, the filters opened on an
+empty "Choose an option" instead of "All actions", "Both teams", and
+"All players", because the "All" choice was stored as no value. The
+"All" option now has its own value, and an app test checks the three
+labels in each language.

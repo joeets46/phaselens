@@ -362,19 +362,38 @@ def _dashboard_check(args):
         print(f"  Match overview  ready    {len(overview['matches'])} matches, "
               f"{len(overview['player_rows'])} player-match rows, commit {overview['source_commit'][:8]}")
     try:
-        explorer = dashboard_data.load_explorer(project_root)
+        listed = dashboard_data.explorer_matches(project_root)
     except dashboard_data.DashboardDataError as error:
         ready = False
         print(f"  360 moments     missing  {str(error).splitlines()[0]}")
         print(f"                           run: {error.command}")
     else:
-        snapshots = sum(1 for row in explorer["context_by_event"].values() if row["frame_available"])
-        print(f"  360 moments     ready    match {explorer['match_id']} (final only): "
-              f"{len(explorer['events'])} actions, {snapshots} with a 360 snapshot")
-        if explorer["saved_csv"]["status"] != "ok":
-            # The saved CSV is a comparison only; the explorer works without it.
-            print(f"  Saved context   {explorer['saved_csv']['status']:<8} comparison only; to create it run: "
-                  f"uv run phaselens three-sixty-context --manifest {dashboard_data.FINAL_MANIFEST}")
+        # Every listed match is loaded on its own, as the explorer would load it.
+        lines, loaded = [], 0
+        for match in listed["matches"]:
+            try:
+                explorer = dashboard_data.load_explorer(project_root, match["manifest"])
+            except dashboard_data.DashboardDataError as error:
+                ready = False
+                lines += [f"    {match['match_id']}  missing  {str(error).splitlines()[0]}",
+                          f"                       run: {error.command}"]
+                continue
+            loaded += 1
+            snapshots = sum(1 for row in explorer["context_by_event"].values() if row["frame_available"])
+            lines.append(f"    {match['match_id']}  ready    {len(explorer['events'])} actions, "
+                         f"{snapshots} with a 360 snapshot")
+            if explorer["saved_csv"]["status"] != "ok":
+                # The saved CSV is a comparison only; the explorer works without it.
+                lines.append(f"    {match['match_id']}  saved context {explorer['saved_csv']['status']}: comparison only; "
+                             f"to create it run: uv run phaselens three-sixty-context --manifest {match['manifest']}")
+        for problem in listed["problems"]:
+            ready = False
+            lines += [f"    {problem['match_id']}  missing  {problem['detail'].splitlines()[0]}",
+                      f"                       run: {problem['command']}"]
+        state = "ready   " if loaded and loaded == len(listed["matches"]) and not listed["problems"] else "missing "
+        print(f"  360 moments     {state} {loaded} matches with verified 360 data")
+        for line in lines:
+            print(line)
     if not ready:
         print("Not ready: run the command(s) above, then check again.", file=sys.stderr)
         return 1

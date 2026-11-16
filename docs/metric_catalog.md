@@ -338,6 +338,69 @@ pass should carry the flag.
 
 All of these figures count events, not unique pressing episodes.
 
+## M12: 15-match knockout-stage dataset
+
+Milestone 12 adds a second pilot, `pilots/euro2024_knockout_stage.json`:
+the fifteen matches of the Euro 2024 knockout stage, the original five
+included. It runs the same contract (version 1) through the same code.
+No metric definition, calculation, aggregation rule, verification rule,
+or dashboard metric changed. The fifteen-match dataset is an additional
+dataset for validation and coverage checks, and the one the dashboard
+reads; it does not replace the original pilot and does not alter what
+any metric means.
+
+Verified totals of the combined fifteen-match table (from the pilot run
+and the fixed pilot queries; integrity checks: 0 violations):
+
+| Item | Value |
+|---|---|
+| Knockout-stage matches | 15 |
+| Player-match rows | 468 |
+| `pressure_event_count`, all rows | 4,345 |
+| `counterpress_pressure_event_count`, all rows | 812 |
+| `counterpress_flagged_event_count`, all rows | 1,370 |
+
+These sums over all rows check the combined table against the per-match
+outputs. They are not team or player totals: the definitions above never
+add rows across matches, and the pilot queries keep matches apart.
+
+For `counterpress_flagged_event_count`, the same breakdown as in the
+five-match pilot:
+
+| Events with `counterpress` exactly `true` | Count |
+|---|---|
+| In the events files | 1,405 |
+| Included by this metric | 1,370 |
+| Excluded: offensive fouls | 0 |
+| Excluded: type outside `S` | 35 |
+
+All 35 excluded events are `Pass` events with `pass.type.name`
+"Interception", as in the five-match pilot, and no `counterpress` value
+other than `true` occurred.
+
+Unchanged: `pressure_event_count`, `counterpress_pressure_event_count`,
+and `counterpress_flagged_event_count`, with their grain and
+eligibility; the rule that rows are never summed across matches; the
+contract checks that stop a run; and the dashboard's calculations and
+presentation rules.
+
+The fifteen matches contain provider data elements that none of the
+original five contains: the event types `Own Goal Against` and
+`Own Goal For`, and the keys `shot.saved_to_post`,
+`shot.saved_off_target`, `shot.open_goal`, `shot.follows_dribble`,
+`goalkeeper.shot_saved_to_post`, `goalkeeper.penalty_saved_to_post`, and
+`goalkeeper.shot_saved_off_target`. They are observed data elements, not
+metrics. The metric contract and the dashboard's calculations do not use
+them. Where and how often they occur is in the
+[schema profile](schema_profile.md).
+
+The original five-match pilot, `pilots/euro2024_knockout_pilot.json`, is
+unchanged. Its matches' source files, manifests, and outputs kept their
+bytes when the fifteen-match pilot ran, and its totals still hold:
+156 player-match rows; 1,425 / 244 / 420 for the three counts; 0
+integrity violations. The five-match figures in "Scope observed in the
+five-match pilot" stay as recorded.
+
 ## Exploratory event-level indicators
 
 Context definition version 1. Implemented in

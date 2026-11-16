@@ -7,11 +7,11 @@ prepared. Everything runs on your machine.
 
 It does:
 
-- show the five-match pilot: team totals and player-match rows of three
-  event counts, per match;
-- show the final's three-sixty frames: for one chosen event, where the
-  visible players were, and the spatial-context values around the
-  event's actor;
+- show the pilot of the fifteen Euro 2024 knockout-stage matches: team
+  totals and player-match rows of three event counts, per match;
+- show the three-sixty frames of every pilot match whose three-sixty
+  data verified: for one chosen event, where the visible players were,
+  and the spatial-context values around the event's actor;
 - verify the prepared files with the pipeline's own checks before
   showing them.
 
@@ -29,12 +29,16 @@ project root, run these once, in this order:
 
 | Step | Command | Network |
 |---|---|---|
-| 1. Five-match pilot: ingest, profile, metrics, Parquet, combined table | `uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json` | Yes, for source files not yet on disk; files already on disk and recorded in a manifest are verified and reused |
-| 2. The final's three-sixty file | `uv run phaselens three-sixty-ingest --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` | Yes, the first time; later runs verify the local file |
-| 3. The final's saved spatial context (comparison only) | `uv run phaselens three-sixty-context --manifest manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_3943043.json` | No |
+| 1. Knockout-stage pilot (15 matches): ingest, profile, metrics, Parquet, combined table | `uv run phaselens pilot --file pilots/euro2024_knockout_stage.json` | Yes, for source files not yet on disk; files already on disk and recorded in a manifest are verified and reused |
+| 2. Each match's three-sixty file | `uv run phaselens three-sixty-ingest --manifest <match manifest>` | Yes, the first time; later runs verify the local file |
+| 3. Each match's saved spatial context (comparison only) | `uv run phaselens three-sixty-context --manifest <match manifest>` | No |
 
-Step 3 is optional for the dashboard: the context is recomputed in
-memory, and the saved file is only compared with it.
+`<match manifest>` is `manifests/statsbomb/open-data/4b73468fc5b0f1950f9f66fada70ad3a4f9327cb/match_<match_id>.json`.
+Steps 2 and 3 apply only to a match whose manifest records
+`three_sixty_check.result` as "present"; at this commit that is all
+fifteen knockout-stage matches. The fourteen files added to the final's
+came to about 118 MB. Step 3 is optional for the dashboard: the context
+is recomputed in memory, and the saved file is only compared with it.
 
 Then check the inputs, offline and without writing anything:
 
@@ -42,8 +46,16 @@ Then check the inputs, offline and without writing anything:
 uv run phaselens dashboard-check
 ```
 
-It prints "Ready." and exits with 0 when both views can open. Otherwise
-it names the command to run for each missing input and exits with 1.
+On the development machine the fifteen-match overview verified in about
+0.3 s (0.2 s for the five-match pilot), the explorer's list of matches
+with verified 360° data in about 2.7 s, and one match's explorer data in
+about 0.5 s; `dashboard-check`, which loads every match, took about 13 s.
+These are observations, not guarantees.
+
+It prints "Ready." and exits with 0 when both views can open: the
+overview's matches and player-match rows, and each match with
+three-sixty data, loaded on its own. Otherwise it names the command to
+run for each missing input and exits with 1.
 
 ## Setup and launch
 
@@ -109,15 +121,21 @@ back to "All …" or to the list's default action.
    column. All rows show without scrolling; on a phone
    the player column stays in place while the counts scroll sideways.
 
-**360° moments** (the final)
+**360° moments**
 
-1. Narrow the actions by type, team, and player. The player list only
+1. Choose a match with the menu in the header. It lists only the pilot's
+   matches whose three-sixty data verified (companion manifest, file
+   hash, and at least one frame); a match without it is not offered,
+   and one whose record fails verification is named in a notice with the
+   command that restores it. The final is first. A match is loaded only
+   when it is chosen, once per session.
+2. Narrow the actions by type, team, and player. The player list only
    offers players with an action of the chosen type for the chosen
    team. It is ordered from goalkeeper to attack and shows, as recorded
    in the events, the player's position, "Starting XI", and the match
    clock of any substitution ("on 67:19", "off 67:19"). No playing time
    is calculated; see "Player list" below.
-2. Pick an action; the label shows match clock, half, action type, and
+3. Pick an action; the label shows match clock, half, action type, and
    player. When two actions in the list would share a label (both
    teams' Starting XI, for example), the team's name is added, and a
    number if that is not enough. The list opens on the first action
@@ -126,7 +144,7 @@ back to "All …" or to the list's default action.
    The ‹ and › buttons beside it step to the previous or next action in
    the filtered list, in its existing order; they are named "Previous
    action" and "Next action" for screen readers.
-3. Above the pitch: the event player, their team, the action type, and
+4. Above the pitch: the event player, their team, the action type, and
    the match clock. The pitch shows the snapshot, with a one-line legend
    under it that names only the symbols this picture contains:
    - the event player as a gold star, named on the pitch on a dark
@@ -147,17 +165,17 @@ back to "All …" or to the list's default action.
    moves the view, and a double-click resets it. The tooltip distance is
    computed for display from the two recorded positions and rounded like
    the other distances; it is not one of the saved context fields.
-4. Switches above the pitch: dashed distance rings of 5, 10, and 20
+5. Switches above the pitch: dashed distance rings of 5, 10, and 20
    units around the event player, and the recorded camera view
    (`visible_area`). Their labels name these symbols, so the legend
    does not repeat them.
-5. "Situation at this moment", beside the pitch (below it on narrower
+6. "Situation at this moment", beside the pitch (below it on narrower
    screens): whether a snapshot exists and the calculation status;
    three values — teammates in the picture, opponents in the picture,
    and the nearest opponent; a small table with the teammates and
    opponents inside each ring; and notices. A value that was not
    computed reads "not computed", never 0.
-6. "Technical details: all fields" (an expander) starts with the
+7. "Technical details: all fields" (an expander) starts with the
    distance between the player in the snapshot and the recorded action
    spot, with its notice, then holds every context field and whether
    the saved `spatial_context.csv` matches the recomputed values.

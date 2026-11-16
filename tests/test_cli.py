@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from phaselens import cli, statsbomb
-from phaselens.dashboard_data import FINAL_COMMIT
+from phaselens import cli, pilot, statsbomb, three_sixty
+from phaselens.dashboard_data import FINAL_COMMIT, PILOT_FILE
 from phaselens.fetch import FetchError
 from synthetic import COMMIT, EVENTS_PATH, files_under, source_url
 
@@ -100,23 +100,31 @@ def test_dashboard_check_without_inputs_names_the_commands_and_writes_nothing(tm
     assert cli.main(["dashboard-check"]) == 1
     output = capsys.readouterr()
     assert "Match overview  missing" in output.out and "360 moments     missing" in output.out
-    assert "run: uv run phaselens pilot --file pilots/euro2024_knockout_pilot.json" in output.out
-    assert "run: uv run phaselens three-sixty-ingest --manifest manifests/" in output.out
+    # Both views start from the pilot: the explorer lists its matches with three-sixty data.
+    assert output.out.count(f"run: uv run phaselens pilot --file {PILOT_FILE}") == 2
     assert "Not ready" in output.err
     assert files_under(tmp_path) == ["pyproject.toml"]
 
 
 def test_dashboard_check_on_the_prepared_data_is_ready_and_writes_nothing(monkeypatch, capsys):
-    needed = [PROJECT_ROOT / "pilots/euro2024_knockout_pilot.json",
+    needed = [PROJECT_ROOT / PILOT_FILE,
               PROJECT_ROOT / f"manifests/statsbomb/open-data/{FINAL_COMMIT}/match_3943043.three_sixty.json",
-              PROJECT_ROOT / f"data/processed/analytics/{FINAL_COMMIT}/pilots/euro2024_knockout_pilot/build_metadata.json"]
+              PROJECT_ROOT / f"data/processed/analytics/{FINAL_COMMIT}/pilots/{Path(PILOT_FILE).stem}/build_metadata.json"]
     if not all(path.is_file() for path in needed):
         pytest.skip("the prepared pilot and three-sixty data are not on disk")
     monkeypatch.chdir(PROJECT_ROOT)
+    # Expected values come from the pilot definition, its verified query, and the companion manifests.
+    definition = pilot.load_pilot(PROJECT_ROOT, PROJECT_ROOT / PILOT_FILE)
+    _, player_rows = pilot.run_pilot_query(PROJECT_ROOT, PROJECT_ROOT / PILOT_FILE, "player-rows")
+    with_360 = [m for m in definition["match_ids"]
+                if three_sixty.companion_path(PROJECT_ROOT, definition["source_commit"], m).is_file()]
     before = _fingerprint(PROJECT_ROOT)
     assert cli.main(["dashboard-check"]) == 0
     output = capsys.readouterr().out
-    assert "Match overview  ready    5 matches, 156 player-match rows" in output
-    assert "360 moments     ready    match 3943043 (final only)" in output
+    assert (f"Match overview  ready    {len(definition['match_ids'])} matches, "
+            f"{len(player_rows)} player-match rows") in output
+    assert f"360 moments     ready    {len(with_360)} matches with verified 360 data" in output
+    assert [line.split()[0] for line in output.splitlines() if line.endswith("with a 360 snapshot")] == [
+        str(m) for m in with_360]  # each match checked on its own, in pilot order
     assert "Ready. Start the dashboard with: uv run --group dashboard streamlit run" in output
     assert _fingerprint(PROJECT_ROOT) == before

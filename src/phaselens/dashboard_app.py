@@ -115,14 +115,20 @@ def _overview(project_root, generation):
 
 
 @st.cache_data(scope="session", show_spinner=False)
-def _explorer(project_root, generation):
-    return data.load_explorer(project_root)
+def _explorer_matches(project_root, generation):
+    return data.explorer_matches(project_root)
 
 
-def _load(loader, root, spinner):
+@st.cache_data(scope="session", show_spinner=False)
+def _explorer(project_root, manifest_file, generation):
+    """One match, loaded only when it is selected."""
+    return data.load_explorer(project_root, manifest_file)
+
+
+def _load(loader, root, spinner, *args):
     try:
         with st.spinner(t(spinner, lang())):
-            return loader(str(root), st.session_state.generation)
+            return loader(str(root), *args, st.session_state.generation)
     except data.DashboardDataError as error:
         st.error(t("error_title", lang()))
         if error.command:
@@ -269,6 +275,12 @@ def _status_chip(status, language):
 # The selector is restored from the kept choice before it is created.
 EVENT_CHOICE = "event_choice"
 _MISSING = object()
+ALL = "all"  # the "All actions / Both teams / All players" option of a filter; never a type, team, or player
+
+
+def _unless_all(value):
+    """A filter's value for the data functions: None for the ALL option."""
+    return None if value == ALL else value
 
 
 def _remember(key):
@@ -318,9 +330,25 @@ def _unique_labels(events, language):
 
 def explorer_view(root):
     language = lang()
-    loaded = _load(_explorer, root, "loading_explorer")
-    summary = loaded["summary"]
-    match_header("explorer", summary)
+    listed = _load(_explorer_matches, root, "loading_explorer_list")
+    # Only matches whose three-sixty data verified are offered.
+    by_match = {m["match_id"]: m for m in listed["matches"]}
+    chosen = {}
+
+    def choose():
+        _restore("explorer_match", by_match, next(iter(by_match)))
+        match_id = st.selectbox(t("explorer_match", language), list(by_match), key="explorer_match",
+                                format_func=lambda m: by_match[m]["label"], label_visibility="collapsed",
+                                on_change=_remember, args=("explorer_match",))
+        chosen["loaded"] = _load(_explorer, root, "loading_explorer", by_match[match_id]["manifest"])
+        return chosen["loaded"]["summary"]
+
+    summary = match_header("explorer", choose=choose) if by_match else None
+    for problem in listed["problems"]:
+        st.warning(t("explorer_unverified", language, match=problem["match_id"], command=problem["command"]))
+    if summary is None:
+        return
+    loaded = chosen["loaded"]
     team_names = {summary["home_team_id"]: summary["home_team"], summary["away_team_id"]: summary["away_team"]}
     team_colours = {summary["home_team_id"]: HOME, summary["away_team_id"]: AWAY}
     squad = data.squad(loaded["events"])
@@ -329,22 +357,23 @@ def explorer_view(root):
         st.subheader(t("filters", language))
         with st.container(horizontal=True, vertical_alignment="bottom", key="filter_row"):
             everything = data.filter_options(loaded["events"])
-            types = [None, *everything["types"]]
-            _restore("type", types, None)  # None is "All actions"
-            type_name = st.selectbox(
+            # "All" is the ALL option, not None: a selector set to None shows no selection at all.
+            types = [ALL, *everything["types"]]
+            _restore("type", types, ALL)
+            type_name = _unless_all(st.selectbox(
                 t("event_type", language), types, key="type", on_change=_remember, args=("type",),
-                format_func=lambda v: t("all_types", language) if v is None else source_name(EVENT_TYPES, v, language))
+                format_func=lambda v: t("all_types", language) if v == ALL else source_name(EVENT_TYPES, v, language)))
             teams = dict(everything["teams"])
-            _restore("team", [None, *teams], None)  # None is "Both teams"
-            team_id = st.selectbox(t("event_team", language), [None, *teams], key="team",
-                                   on_change=_remember, args=("team",),
-                                   format_func=lambda v: t("all_teams", language) if v is None else str(teams[v]))
-            players = [None, *(pid for pid, _ in data.filter_options(loaded["events"], type_name, team_id)["players"])]
+            _restore("team", [ALL, *teams], ALL)
+            team_id = _unless_all(st.selectbox(
+                t("event_team", language), [ALL, *teams], key="team", on_change=_remember, args=("team",),
+                format_func=lambda v: t("all_teams", language) if v == ALL else str(teams[v])))
+            players = [ALL, *(pid for pid, _ in data.filter_options(loaded["events"], type_name, team_id)["players"])]
             # A player without actions of the chosen type and team falls back to "All players".
-            _restore("player", players, None)
-            player_id = st.selectbox(
+            _restore("player", players, ALL)
+            player_id = _unless_all(st.selectbox(
                 t("event_player", language), players, key="player", on_change=_remember, args=("player",),
-                format_func=lambda v: t("all_players", language) if v is None else data.player_label(squad[v], language))
+                format_func=lambda v: t("all_players", language) if v == ALL else data.player_label(squad[v], language)))
             events = data.filter_events(loaded["events"], type_name, team_id, player_id)
             if events:
                 by_id = {e["id"]: e for e in events}

@@ -15,7 +15,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 from phaselens import dashboard_data as data  # noqa: E402
-from phaselens import pilot, statsbomb  # noqa: E402
+from phaselens import pilot, statsbomb, three_sixty  # noqa: E402
 from phaselens.ingest import manifest_path, parse_json_array, read_manifest, read_verified_files  # noqa: E402
 from phaselens.metrics import METRIC_NAMES  # noqa: E402
 
@@ -24,10 +24,16 @@ APP = PROJECT_ROOT / "src/phaselens/dashboard_app.py"
 NEEDED = [
     PROJECT_ROOT / data.PILOT_FILE,
     PROJECT_ROOT / data.FINAL_MANIFEST,
-    PROJECT_ROOT / "data/processed/analytics" / data.FINAL_COMMIT / "pilots/euro2024_knockout_pilot/build_metadata.json",
+    PROJECT_ROOT / "data/processed/analytics" / data.FINAL_COMMIT / "pilots" / Path(data.PILOT_FILE).stem
+    / "build_metadata.json",
     PROJECT_ROOT / "manifests/statsbomb/open-data" / data.FINAL_COMMIT / f"match_{data.FINAL_MATCH_ID}.three_sixty.json",
 ]
 SPAIN = 772
+ALL = "all"  # the value of a filter's "All …" option in dashboard_app
+
+
+def pilot_match_ids():
+    return pilot.load_pilot(PROJECT_ROOT, PROJECT_ROOT / data.PILOT_FILE)["match_ids"]
 
 
 @pytest.fixture
@@ -61,7 +67,7 @@ def test_overview_shows_the_match_header_comparison_and_player_rows(app):
     assert app.button_group(key="view").value == "overview" and app.selectbox(key="lang").value == "en"
     assert len(app.dataframe) == 2  # one player table per team; the comparison is a compact list
     match = app.selectbox(key="match")
-    assert len(match.options) == 5
+    assert len(match.options) == len(pilot_match_ids())
     markdown = texts(app.markdown)
     assert "UEFA Euro 2024 · Final · 2024-07-14" in markdown and "2 – 1" in markdown
     assert "Pressure events" in markdown
@@ -72,7 +78,7 @@ def test_overview_shows_the_match_header_comparison_and_player_rows(app):
 
 
 def test_every_pilot_match_shows_its_verified_totals_teams_score_and_rows(app):
-    """Each of the five matches, checked against sources the app does not use for this check.
+    """Each pilot match, checked against sources the app does not use for this check.
 
     Team totals come straight from the verified pilot query; teams from the
     match manifest; the score from the verified match-list file that the
@@ -111,8 +117,41 @@ def test_every_pilot_match_shows_its_verified_totals_teams_score_and_rows(app):
             assert table["team_id"].nunique() == 1
             assert list(table["player_id"]) == sorted(table["player_id"])  # player-id order, not a ranking
         shown_rows += sum(len(table) for table in tables)
-    assert sorted(seen) == sorted(pilot.load_pilot(PROJECT_ROOT, pilot_file)["match_ids"])
-    assert shown_rows == 156
+    assert seen == pilot_match_ids()  # every match, in the definition's order
+    _, player_rows = pilot.run_pilot_query(PROJECT_ROOT, pilot_file, "player-rows")
+    assert shown_rows == len(player_rows)  # the verified dataset's player-match rows
+
+
+def companion_match_ids():
+    """Pilot matches with a three-sixty companion manifest on disk, in pilot order."""
+    commit = pilot.load_pilot(PROJECT_ROOT, PROJECT_ROOT / data.PILOT_FILE)["source_commit"]
+    return [m for m in pilot_match_ids() if three_sixty.companion_path(PROJECT_ROOT, commit, m).is_file()]
+
+
+def test_the_explorer_menu_lists_only_matches_with_verified_360_data(app):
+    menu = explorer(app).selectbox(key="explorer_match")
+    commit = pilot.load_pilot(PROJECT_ROOT, PROJECT_ROOT / data.PILOT_FILE)["source_commit"]
+    expected = [data.match_summary(PROJECT_ROOT, manifest_path(PROJECT_ROOT, commit, m))["label"]
+                for m in companion_match_ids()]
+    assert menu.options == expected  # pilot order; a match without a companion manifest is not offered
+    assert menu.value == companion_match_ids()[0]
+
+
+def test_a_chosen_explorer_match_loads_and_is_kept_through_language_changes(app):
+    target = companion_match_ids()[1]
+    explorer(app).selectbox(key="explorer_match").select_index(1).run()
+    assert not app.exception
+    commit = pilot.load_pilot(PROJECT_ROOT, PROJECT_ROOT / data.PILOT_FILE)["source_commit"]
+    meta = read_manifest(manifest_path(PROJECT_ROOT, commit, target))["match_metadata"]
+    events = {e["id"] for e in data.load_explorer(PROJECT_ROOT, manifest_path(PROJECT_ROOT, commit, target))["events"]}
+    for language in ("en", "tr", "de", "en"):
+        app.selectbox(key="lang").set_value(language).run()
+        assert not app.exception
+        assert app.selectbox(key="explorer_match").value == target
+        markdown = texts(app.markdown)
+        assert meta["home_team"]["home_team_name"] in markdown and meta["away_team"]["away_team_name"] in markdown
+        assert app.selectbox(key="event").value in events  # the actions are this match's
+        assert f"{target}" in texts(app.caption)  # the footer names the match
 
 
 def test_explorer_shows_an_action_without_a_snapshot_as_not_computed(app):
@@ -145,12 +184,23 @@ def test_player_list_follows_the_team_and_runs_from_goalkeeper(app):
     assert any("Morata" in option and "off 67:19" in option for option in players)
 
 
+def test_filters_open_on_their_all_options_with_labels_in_each_language(app):
+    explorer(app)
+    for language, labels in (("en", ("All actions", "Both teams", "All players")),
+                             ("tr", ("Tüm aksiyonlar", "İki takım", "Tüm oyuncular")),
+                             ("de", ("Alle Aktionen", "Beide Teams", "Alle Spieler"))):
+        app.selectbox(key="lang").set_value(language).run()
+        for key, label in zip(("type", "team", "player"), labels):
+            assert app.selectbox(key=key).value == ALL  # an option, never "no selection"
+            assert shown_option(app, key) == label
+
+
 def test_filters_that_match_nothing_say_so(app):
     explorer(app).selectbox(key="player").select_index(1).run()
     app.selectbox(key="type").set_value("Starting XI").run()
     assert not app.exception
     # The player is no longer a choice for that type, so the filter falls back to all players.
-    assert app.selectbox(key="player").value is None
+    assert app.selectbox(key="player").value == ALL and shown_option(app, "player") == "All players"
 
 
 def test_reload_re_verifies_and_nothing_is_written(app):
@@ -288,18 +338,17 @@ def test_the_action_type_filter_keeps_its_value_and_is_labelled_in_each_language
 
 def test_the_action_type_filter_is_restored_or_falls_back_safely(app):
     explorer(app).selectbox(key="type").set_value("Pressure").run()
-    app.session_state["type"] = None  # what a browser reset to the default looks like
+    app.session_state["type"] = ALL  # what a browser reset to the default looks like
     app.selectbox(key="lang").set_value("de").run()
     assert app.selectbox(key="type").value == "Pressure"
-    # A kept value that is no longer an option is ignored: the selector keeps
-    # its current valid value, here "All actions". (AppTest cannot hold an
-    # invalid value in the selector itself.)
+    # A kept value that is no longer an option is ignored, and so is a
+    # selector left with no selection: the filter falls back to "All
+    # actions". (AppTest cannot hold an invalid value in the selector.)
     app.session_state["type_choice"] = "No such type"
     app.session_state["type"] = None
     app.selectbox(key="lang").set_value("en").run()
     assert not app.exception
-    assert app.selectbox(key="type").value is None
-    assert app.selectbox(key="type").options[0] == "All actions"  # the label of the None option, in English
+    assert app.selectbox(key="type").value == ALL and shown_option(app, "type") == "All actions"
     assert app.selectbox(key="event").value  # the action list still opens on its default
 
 

@@ -132,6 +132,37 @@ def test_overview_without_pilot_output_says_what_to_run(project):
 # --- view 2 ---------------------------------------------------------------
 
 
+def test_explorer_lists_only_matches_with_verified_three_sixty_data(project):
+    listed = data.explorer_matches(project, PILOT)
+    assert [m["match_id"] for m in listed["matches"]] == [MATCH_ID]  # match 701 has no companion manifest
+    assert listed["matches"][0]["manifest"] == MANIFEST and listed["matches"][0]["frames"] == len(FRAMES)
+    assert listed["problems"] == []
+
+
+def test_a_three_sixty_file_that_fails_verification_is_reported_not_listed(project):
+    companion = json.loads(three_sixty.companion_path(project, COMMIT, MATCH_ID).read_text(encoding="utf-8"))
+    local = project / companion["file"]["local_path"]
+    local.write_bytes(local.read_bytes() + b" ")
+    listed = data.explorer_matches(project, PILOT)
+    assert listed["matches"] == []
+    assert [(p["match_id"], p["command"]) for p in listed["problems"]] == [
+        (MATCH_ID, f"uv run phaselens three-sixty-ingest --manifest {MANIFEST}")]
+
+
+def test_explorer_without_a_pilot_definition_says_what_to_run(tmp_path):
+    (tmp_path / "pyproject.toml").write_text("")
+    with pytest.raises(data.DashboardDataError) as caught:
+        data.explorer_matches(tmp_path, PILOT)
+    assert caught.value.command == f"uv run phaselens pilot --file {PILOT}"
+
+
+def test_explorer_without_any_three_sixty_data_names_the_first_match(project):
+    three_sixty.companion_path(project, COMMIT, MATCH_ID).unlink()
+    with pytest.raises(data.DashboardDataError) as caught:
+        data.explorer_matches(project, PILOT)
+    assert caught.value.command == f"uv run phaselens three-sixty-ingest --manifest {MANIFEST}"
+
+
 def test_explorer_recomputes_context_from_verified_inputs(project, source):
     before = snapshot(project)
     loaded = data.load_explorer(project, MANIFEST)

@@ -35,14 +35,19 @@ TEXT = {
     "guide_tab_pitch": {"en": "Reading the pitch", "tr": "Saha nasıl okunur", "de": "Das Spielfeld lesen"},
     "guide_tab_terms": {"en": "Terms", "tr": "Terimler", "de": "Begriffe"},
     "loading_overview": {
-        "en": "Checking the five pilot matches…",
-        "tr": "Beş pilot maç doğrulanıyor…",
-        "de": "Die fünf Pilotspiele werden geprüft…",
+        "en": "Checking the pilot matches…",
+        "tr": "Pilot maçlar doğrulanıyor…",
+        "de": "Die Pilotspiele werden geprüft…",
     },
     "loading_explorer": {
-        "en": "Checking the final's actions and 360° snapshots…",
-        "tr": "Finalin aksiyonları ve 360° görüntüleri doğrulanıyor…",
-        "de": "Aktionen und 360°-Aufnahmen des Finales werden geprüft…",
+        "en": "Checking this match's actions and 360° snapshots…",
+        "tr": "Bu maçın aksiyonları ve 360° görüntüleri doğrulanıyor…",
+        "de": "Aktionen und 360°-Aufnahmen dieses Spiels werden geprüft…",
+    },
+    "loading_explorer_list": {
+        "en": "Checking which matches have verified 360° data…",
+        "tr": "Hangi maçların doğrulanmış 360° verisi olduğu kontrol ediliyor…",
+        "de": "Es wird geprüft, welche Spiele geprüfte 360°-Daten haben…",
     },
     "wrong_root": {
         "en": "Start the dashboard from the PhaseLens project folder.",
@@ -305,6 +310,14 @@ TEXT = {
               "'<0.001' steht für einen Abstand über 0, aber unter 0.001). Berechnungen und gespeicherte Dateien "
               "behalten die volle Genauigkeit.",
     },
+    "explorer_match": {
+        "en": "Match with 360° data", "tr": "360° verisi olan maç", "de": "Spiel mit 360°-Daten",
+    },
+    "explorer_unverified": {
+        "en": "Match {match} has a 360° record that could not be verified, so it is not listed. Run {command}, then reload.",
+        "tr": "{match} numaralı maçın 360° kaydı doğrulanamadı; bu yüzden listede yok. {command} çalıştırın, ardından yeniden yükleyin.",
+        "de": "Spiel {match} hat einen 360°-Eintrag, der nicht geprüft werden konnte, und wird daher nicht angezeigt. Führen Sie {command} aus und laden Sie neu.",
+    },
     "explorer_scope": {
         "en": "Snapshots at action moments: not tracking data, and not a measure of player quality.",
         "tr": "Aksiyon anlarındaki görüntülerdir: takip (tracking) verisi değildir ve oyuncu kalitesini ölçmez.",
@@ -423,12 +436,13 @@ TEXT = {
 2. *Team comparison* puts both teams' counts side by side (home blue, away orange). Each bar is the team's share of the two teams' total in that row.
 3. *Players in this match* has one table per team with every player's counts. Point at a column header for its full definition. The order (team, then player ID) is not a ranking.
 
-**360° moments** (the final)
+**360° moments** (every pilot match with verified 360° data)
 
-1. Narrow the actions by action type, team, and player. The player list follows the chosen team, runs from goalkeeper to attack, and shows when a player came on or went off.
-2. Pick an action, or step through the list with ‹ and ›. Above the pitch: the player, team, action, and match time. The pitch shows the 360° snapshot of that moment; *Reading the pitch* explains each symbol.
-3. *Situation at this moment* (beside the pitch, or below it on narrow screens) shows whether a snapshot exists, how many teammates and opponents were in the picture, the nearest opponent, and the players inside each ring.
-4. *Technical details* at the bottom lists every calculated field, including the distance between the player in the snapshot and the recorded action spot.
+1. Choose a match with the menu in the header. It lists only matches whose 360° data was verified.
+2. Narrow the actions by action type, team, and player. The player list follows the chosen team, runs from goalkeeper to attack, and shows when a player came on or went off.
+3. Pick an action, or step through the list with ‹ and ›. Above the pitch: the player, team, action, and match time. The pitch shows the 360° snapshot of that moment; *Reading the pitch* explains each symbol.
+4. *Situation at this moment* (beside the pitch, or below it on narrow screens) shows whether a snapshot exists, how many teammates and opponents were in the picture, the nearest opponent, and the players inside each ring.
+5. *Technical details* at the bottom lists every calculated field, including the distance between the player in the snapshot and the recorded action spot.
 
 **Top bar**
 
@@ -442,12 +456,13 @@ Nothing is downloaded or changed: the app only reads files prepared earlier on t
 2. *Takım karşılaştırması* iki takımın sayılarını yan yana gösterir (ev sahibi mavi, deplasman turuncu). Her çubuk, o satırdaki iki takım toplamı içinde takımın payıdır.
 3. *Bu maçtaki oyuncular* her takım için ayrı bir tabloda oyuncuların sayılarını gösterir. Tam tanım için imleci sütun başlığının üzerine getirin. Sıra (takım, ardından oyuncu ID'si) bir başarı sıralaması değildir.
 
-**360° anlar** (final maçı)
+**360° anlar** (doğrulanmış 360° verisi olan her pilot maç)
 
-1. Aksiyonları aksiyon türü, takım ve oyuncuya göre daraltın. Oyuncu listesi seçilen takıma göre değişir, kaleciden hücuma doğru sıralanır ve oyuncunun oyuna ne zaman girip çıktığını gösterir.
-2. Bir aksiyon seçin ya da listede ‹ ve › ile ilerleyin. Sahanın üstünde: oyuncu, takım, aksiyon ve maç dakikası. Saha, o anın 360° anlık görüntüsünü gösterir; her işaretin anlamı *Saha nasıl okunur* sekmesindedir.
-3. *Bu andaki durum* (sahanın yanında, dar ekranlarda altında) anlık görüntünün olup olmadığını, görüntüde kaç takım arkadaşı ve rakip olduğunu, en yakın rakibi ve her halkanın içindeki oyuncuları gösterir.
-4. En alttaki *Teknik ayrıntılar* hesaplanan tüm alanları listeler; görüntüdeki oyuncu ile aksiyonun kaydedildiği nokta arasındaki mesafe de buradadır.
+1. Başlıktaki menüden bir maç seçin. Menü yalnızca 360° verisi doğrulanmış maçları gösterir.
+2. Aksiyonları aksiyon türü, takım ve oyuncuya göre daraltın. Oyuncu listesi seçilen takıma göre değişir, kaleciden hücuma doğru sıralanır ve oyuncunun oyuna ne zaman girip çıktığını gösterir.
+3. Bir aksiyon seçin ya da listede ‹ ve › ile ilerleyin. Sahanın üstünde: oyuncu, takım, aksiyon ve maç dakikası. Saha, o anın 360° anlık görüntüsünü gösterir; her işaretin anlamı *Saha nasıl okunur* sekmesindedir.
+4. *Bu andaki durum* (sahanın yanında, dar ekranlarda altında) anlık görüntünün olup olmadığını, görüntüde kaç takım arkadaşı ve rakip olduğunu, en yakın rakibi ve her halkanın içindeki oyuncuları gösterir.
+5. En alttaki *Teknik ayrıntılar* hesaplanan tüm alanları listeler; görüntüdeki oyuncu ile aksiyonun kaydedildiği nokta arasındaki mesafe de buradadır.
 
 **Üst çubuk**
 
@@ -461,12 +476,13 @@ Hiçbir şey indirilmez veya değiştirilmez: uygulama yalnızca bu bilgisayarda
 2. *Teamvergleich* stellt die Werte beider Teams nebeneinander (Heim blau, Gast orange). Jeder Balken ist der Anteil des Teams an der Summe beider Teams in dieser Zeile.
 3. *Spieler in diesem Spiel* zeigt je Team eine Tabelle mit den Werten jedes Spielers. Für die vollständige Definition mit der Maus auf eine Spaltenüberschrift zeigen. Die Reihenfolge (Team, dann Spieler-ID) ist keine Rangliste.
 
-**360°-Momente** (das Finale)
+**360°-Momente** (jedes Pilotspiel mit geprüften 360°-Daten)
 
-1. Grenzen Sie die Aktionen nach Aktionstyp, Team und Spieler ein. Die Spielerliste folgt dem gewählten Team, ist vom Torwart bis zum Angriff geordnet und zeigt Ein- und Auswechslungen.
-2. Wählen Sie eine Aktion oder blättern Sie mit ‹ und › durch die Liste. Über dem Spielfeld: Spieler, Team, Aktion und Spielzeit. Das Spielfeld zeigt die 360°-Momentaufnahme dieses Augenblicks; *Das Spielfeld lesen* erklärt jedes Symbol.
-3. *Situation in diesem Moment* (neben dem Spielfeld, auf schmalen Bildschirmen darunter) zeigt, ob eine Aufnahme existiert, wie viele Mit- und Gegenspieler im Bild waren, den nächsten Gegenspieler und die Spieler in jedem Ring.
-4. *Technische Details* ganz unten listet alle berechneten Felder, darunter den Abstand zwischen dem Spieler in der Aufnahme und dem erfassten Aktionsort.
+1. Wählen Sie im Menü im Kopfbereich ein Spiel. Es zeigt nur Spiele, deren 360°-Daten geprüft wurden.
+2. Grenzen Sie die Aktionen nach Aktionstyp, Team und Spieler ein. Die Spielerliste folgt dem gewählten Team, ist vom Torwart bis zum Angriff geordnet und zeigt Ein- und Auswechslungen.
+3. Wählen Sie eine Aktion oder blättern Sie mit ‹ und › durch die Liste. Über dem Spielfeld: Spieler, Team, Aktion und Spielzeit. Das Spielfeld zeigt die 360°-Momentaufnahme dieses Augenblicks; *Das Spielfeld lesen* erklärt jedes Symbol.
+4. *Situation in diesem Moment* (neben dem Spielfeld, auf schmalen Bildschirmen darunter) zeigt, ob eine Aufnahme existiert, wie viele Mit- und Gegenspieler im Bild waren, den nächsten Gegenspieler und die Spieler in jedem Ring.
+5. *Technische Details* ganz unten listet alle berechneten Felder, darunter den Abstand zwischen dem Spieler in der Aufnahme und dem erfassten Aktionsort.
 
 **Obere Leiste**
 

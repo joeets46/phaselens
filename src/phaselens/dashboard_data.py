@@ -29,7 +29,7 @@ METRIC_LABELS = {
     "counterpress_flagged_event_count": "Counterpress-flagged events — supported types",
 }
 
-PILOT_FILE = "pilots/euro2024_knockout_pilot.json"
+PILOT_FILE = "pilots/euro2024_knockout_stage.json"
 FINAL_COMMIT = "4b73468fc5b0f1950f9f66fada70ad3a4f9327cb"
 FINAL_MATCH_ID = 3943043
 FINAL_MANIFEST = f"manifests/statsbomb/open-data/{FINAL_COMMIT}/match_{FINAL_MATCH_ID}.json"
@@ -170,7 +170,52 @@ def comparison_rows(team_totals, summary):
     return rows
 
 
-# --- view 2: final-match 360 explorer -------------------------------------
+# --- view 2: 360 explorer -------------------------------------------------
+
+
+def explorer_matches(project_root, pilot_file=PILOT_FILE):
+    """The pilot's matches whose three-sixty data verifies, in pilot order.
+
+    A match is listed only when its companion manifest exists and its
+    recorded file passes `three_sixty.verified_inputs` with at least one
+    frame. A match without a companion manifest has no three-sixty data
+    here and is left out. A match whose companion manifest exists but does
+    not verify is left out too, and returned under "problems" with the
+    command that restores it, so it is never hidden silently.
+    """
+    project_root = Path(project_root)
+    try:
+        definition = pilot.load_pilot(project_root, project_root / pilot_file)
+    except _CHECK_ERRORS as error:
+        command = f"uv run phaselens pilot --file {pilot_file}"
+        raise DashboardDataError(
+            f"{error}\n\nThe explorer lists the pilot's matches with three-sixty data. Run `{command}` and reload.",
+            command=command,
+        ) from error
+    matches, problems = [], []
+    for match_id in definition["match_ids"]:
+        manifest_file = manifest_path(project_root, definition["source_commit"], match_id)
+        relative = manifest_file.relative_to(project_root).as_posix()
+        if not three_sixty.companion_path(project_root, definition["source_commit"], match_id).is_file():
+            continue
+        command = f"uv run phaselens three-sixty-ingest --manifest {relative}"
+        try:
+            _, _, _, frames, _ = three_sixty.verified_inputs(project_root, manifest_file)
+            summary = match_summary(project_root, manifest_file)
+        except _CHECK_ERRORS as error:
+            problems.append({"match_id": match_id, "manifest": relative, "detail": str(error), "command": command})
+            continue
+        if not frames:
+            problems.append({"match_id": match_id, "manifest": relative, "detail": "the three-sixty file holds no frame",
+                             "command": command})
+            continue
+        matches.append({"match_id": match_id, "manifest": relative, "label": summary["label"], "frames": len(frames)})
+    if not matches and not problems:
+        first = manifest_path(project_root, definition["source_commit"], definition["match_ids"][0])
+        command = f"uv run phaselens three-sixty-ingest --manifest {first.relative_to(project_root).as_posix()}"
+        raise DashboardDataError(
+            f"No match of {pilot_file} has three-sixty data. Run `{command}` and reload.", command=command)
+    return {"source_commit": definition["source_commit"], "matches": matches, "problems": problems}
 
 
 def load_explorer(project_root, manifest_file=FINAL_MANIFEST):
