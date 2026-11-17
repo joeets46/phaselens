@@ -158,9 +158,9 @@ ingest, rebuild, or write. Context values shown are recomputed with
 127.0.0.1 is not a firewall; do not describe it as one.
 
 Profile outputs go to `data/processed/profiles/<commit>/<match_id>/`
-and must stay byte-identical for identical inputs. What the ingested
-match contains is in `docs/schema_profile.md`; check field names there
-before using one. The profiler only describes: no metrics, no
+and must stay byte-identical for identical inputs. What the final
+contains, and the elements first seen in the fifteen-match pilot, are in
+`docs/schema_profile.md`; check field names there before using one. The profiler only describes: no metrics, no
 per-player figures, no minutes played.
 
 Tests must not use the network; `tests/conftest.py` blocks it.

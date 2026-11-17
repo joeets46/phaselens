@@ -45,9 +45,10 @@ three-sixty data stored for all fifteen. The five-match pilot is kept
 unchanged; its matches' files and outputs did not change. The dashboard
 reads the fifteen-match pilot.
 
-A local, read-only dashboard was completed in M9: it shows the pilot
+A local, read-only dashboard was completed in M9: it showed the pilot
 results and the final's three-sixty frames and spatial context from
-verified data, and never downloads or writes. M10 polished its
+verified data, and never downloads or writes. Since M12 its explorer
+offers every pilot match with verified three-sixty data (all fifteen). M10 polished its
 presentation only (layout, formatting, accessibility, and
 documentation) and added no analytical feature. M11 added a read-only
 `dashboard-check` command, a repeatable
@@ -75,7 +76,9 @@ general; what a specific source contains must be confirmed by inspection.
 For the final, the three-sixty file has been retrieved and described
 (Milestone 7): it holds positions of visible players at 2,882 of the
 3,304 event moments, without player identities beyond the event's
-actor. See [three-sixty frames](three_sixty.md).
+actor. See [three-sixty frames](three_sixty.md). In M12 the
+three-sixty files of all fifteen knockout-stage matches were retrieved;
+per-match coverage is in the same document.
 
 ## Metric classification
 
@@ -131,8 +134,8 @@ Each milestone starts only after explicit approval.
 
 ## Known limitations
 
-- Five knockout matches support pipeline development, not conclusions
-  about players.
+- Fifteen knockout matches of one tournament support pipeline
+  development, not conclusions about players or teams.
 - Event data is collected by human annotators using provider
   definitions; those definitions bound what any metric can mean.
 - No parameter in this project has been validated against tracking data
@@ -143,11 +146,14 @@ Each milestone starts only after explicit approval.
 - Totals across matches are raw event counts, not normalized for
   playing time, number of matches, or opportunities.
 
-- The schema is known from one match only. Provider definitions come
-  from 2019 documents that do not cover every field in the files.
+- The written schema profile describes the final; the profiler ran on
+  all fifteen pilot matches, and comparing their key paths found the
+  elements listed at the end of the [schema profile](schema_profile.md).
+  Provider definitions come from 2019 documents that do not cover every
+  field in the files.
 - The implemented metrics are event counts without any normalization
-  by playing time, computed for one match, and not validated for
-  football meaning.
+  by playing time, computed per match for the fifteen pilot matches,
+  and not validated for football meaning.
 
 ## Open questions
 

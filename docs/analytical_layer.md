@@ -354,13 +354,25 @@ combined file's own SHA-256 and size.
 
 The single-match queries and their SQL files are unchanged.
 
+### Fifteen-match pilot (Milestone 12)
+
+`pilots/euro2024_knockout_stage.json` names all fifteen matches of the
+Euro 2024 knockout stage (round of 16 to the final), the five above
+included, at the same commit, chosen by `competition_stage.name` from
+the same verified match list. It runs through the same steps and
+queries. Its combined table has 468 player-match rows, and the
+dashboard reads it. The five-match pilot and its output are kept
+unchanged.
+
 ### Pilot limitations
 
 - Totals are raw event counts. They are not normalized for playing
   time, for the number of matches a team or player appears in, or for
   opportunities such as the opponent's possession. A match with extra
   time has more minutes in which events can occur.
-- Five knockout matches are not a sample of the tournament.
+- Five knockout matches are not a sample of the tournament. Neither are
+  the fifteen of the knockout-stage pilot: no group-stage match is
+  included.
 - Player rows are per match. The same player appears once for each
   match, and no query merges them.
 - The verification limits described above apply to each match and to
@@ -386,7 +398,8 @@ observation about one environment, not a guarantee.
 
 ## Why there is no persistent database
 
-One table of 29 rows does not need one. A `.duckdb` file would be a
+The largest table, the fifteen-match combined table, has 468 rows;
+that still does not need one. A `.duckdb` file would be a
 second copy of the data to keep in step with the Parquet file, with
 its own format and versioning. The Parquet file is the single stored
 form, and DuckDB reads it directly whenever a query runs. A persistent
@@ -395,7 +408,8 @@ join or the data no longer fits comfortable in-memory reads.
 
 ## Limitations
 
-- One table, one match. Source events are not stored in Parquet.
+- One table per match, plus one combined table per pilot (five and
+  fifteen matches). Source events are not stored in Parquet.
 - Reconciliation compares totals, so a CSV-only edit that keeps them
   can pass the build.
 - Checksums detect change relative to what was recorded. They are not

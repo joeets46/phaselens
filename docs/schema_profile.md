@@ -1,9 +1,11 @@
-# Schema profile: one match
+# Schema profile: the final
 
-What the locally stored files of one match contain, as counted by
-`phaselens profile`. Every number below comes from that command's
-output. Nothing here is a metric, and nothing generalises beyond this
-match.
+What the locally stored files of one match, the final, contain, as
+counted by `phaselens profile`. Every number below comes from that
+command's output. Nothing here is a metric, and nothing generalises
+beyond this match. The last section adds the elements first seen when
+the profiler ran on all fifteen pilot matches; those runs are not
+otherwise written up here.
 
 Observations and meanings are kept apart. Everything in this document
 is an observation from the files, except passages that begin with

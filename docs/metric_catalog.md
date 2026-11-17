@@ -269,11 +269,11 @@ minutes played. The only window involved is the provider's own
 |---|---|
 | `metric_name` | `pressure_event_count` |
 | `grain` | `(c, m, t, p)` |
-| `required_data` | Events file: `id`, `type.id`, `type.name`, `team.id`, `player.id`. For eligibility: `tactics.lineup[].player.id` on Starting XI events and `substitution.replacement.id`. Match list: the two team ids. All confirmed in the ingested match. |
+| `required_data` | Events file: `id`, `type.id`, `type.name`, `team.id`, `player.id`. For eligibility: `tactics.lineup[].player.id` on Starting XI events and `substitution.replacement.id`. Match list: the two team ids. All confirmed in the ingested match; all fifteen pilot matches ran under the contract with no stop condition and no unattributed event. |
 | `classification` | `derived` |
 | `definition` | `sum over e in E(c, m) of 1[type(e) = 17] * 1[team(e) = t] * 1[player(e) = p]` |
 | `eligibility` | Rows for `P(c, m)`; zero reported |
-| `limitations` | Counts what collectors logged as a Pressure event under the provider's definition. No distance or intensity threshold is documented. Says nothing about pressing that was not logged, its effect, or team shape. Not comparable between players without time on the pitch, which is not available. One match. |
+| `limitations` | Counts what collectors logged as a Pressure event under the provider's definition. No distance or intensity threshold is documented. Says nothing about pressing that was not logged, its effect, or team shape. Not comparable between players without time on the pitch, which is not available. Computed per match; the pilots cover five and fifteen knockout matches of one tournament. |
 | `source_reference` | Events v4.0.0 p. 4 (type 17), p. 31 (duration); Spec v1.1 pp. 13, 29 |
 | `acceptance_cases` | 1, 2, 4, 6, 7, 9, 10, 11, 12, 14 to 22, 26 |
 | `validation_status` | `implemented_unvalidated` |
@@ -494,8 +494,10 @@ metres. Radii must be finite, positive, and unique.
   visibility correction.
 - Entries carry no identity beyond the actor, so no neighbour is
   attributed to a named player.
-- One match. No aggregation into player scores, rankings, or per-90
-  values.
+- Computed for each of the fifteen knockout-stage matches; the
+  observations in section B of [three-sixty frames](three_sixty.md) are
+  for the final only. No aggregation into player scores, rankings, or
+  per-90 values.
 
 ## Acceptance cases
 

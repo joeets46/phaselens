@@ -19,8 +19,11 @@ rated or ranked.
 ## What exists today
 
 - A command line tool, `phaselens`, that lists what StatsBomb Open Data
-  offers and downloads one match at one pinned upstream commit
-- Byte-for-byte local copies of four source files for one match
+  offers and downloads one match per run, or a pilot's matches, at one
+  pinned upstream commit
+- Byte-for-byte local copies of the source files of fifteen matches:
+  events, lineups, and the three-sixty file of each match, plus two
+  shared files (47 files)
 - A provenance manifest recording where each file came from, its
   SHA-256, its size, and when it was retrieved
 - Repeat runs that verify the local files against the manifest instead
@@ -29,7 +32,8 @@ rated or ranked.
   runs a limited set of consistency checks
 - Tests that run without internet access
 - Documentation: project brief, data source notes, the schema profile
-  of the ingested match, and what the provider's specification says
+  of the final with the elements first seen in the fifteen-match pilot,
+  and what the provider's specification says
   about the fields the first metrics use
 - A metric catalog holding the contract for three event counts: exact
   formulas, eligibility, diagnostics, and acceptance cases
@@ -189,7 +193,7 @@ uv sync          # create .venv and install the locked dependencies
 uv run pytest    # run the tests (no internet needed)
 ```
 
-## The ingested match
+## The first ingested match
 
 | Item | Value, as recorded in the source |
 |---|---|
@@ -204,7 +208,8 @@ Why this match: it is the only match of its season whose stage is
 "Final" in the source, so the choice is unambiguous; it is widely
 reported, so its teams, date, and score are easy to check against
 public records; and the source marks both its event data and its
-three-sixty data as available, which keeps later options open.
+three-sixty data as available, which keeps later options open. The
+other fourteen matches are listed in `pilots/euro2024_knockout_stage.json`.
 
 ## Reproducing the download
 
@@ -264,7 +269,9 @@ found: not reused, not overwritten, not deleted.
 
 This behaviour is covered by offline tests with synthetic data, and the
 five-match pilot uses it: four matches were ingested after the final at
-the same commit, each reusing the verified shared files.
+the same commit, each reusing the verified shared files. The
+fifteen-match pilot did the same for ten more matches, each downloading
+its events and lineups and reusing the two shared files.
 
 ## Profiling the match
 
@@ -362,7 +369,7 @@ compared between players. They are classified as `derived`, and their
 status is `implemented_unvalidated`: the code matches its contract, and
 nothing more is claimed.
 
-### Result for the ingested match
+### Result for the final
 
 29 eligible players. Totals over all players: 327 Pressure events, 57
 of them flagged as counterpress, and 94 flagged events across the
@@ -467,8 +474,10 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   verifications and restorations are not logged anywhere.
 - Ingestion validates only that each file is a non-empty JSON array of
   objects.
-- The profile describes one match. Fields and event types that did not
-  occur in it are unobserved, not absent from the source.
+- The written schema profile describes the final; the profiler ran on
+  all fifteen matches, but their outputs are written up only for the
+  elements listed in the schema profile. Fields and event types that did
+  not occur are unobserved, not absent from the source.
 - The profiler's checks test internal consistency, not whether events
   were logged correctly.
 - Provider definitions were read from three 2019 specification
@@ -476,12 +485,14 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
   including direction of play and the meaning of lineup position
   intervals; see [provider semantics](docs/provider_semantics.md). No
   newer provider documentation was consulted.
-- The metrics are counts for one match, without normalization by
-  playing time, and are not validated for football meaning.
+- The metrics are per-match counts for the fifteen pilot matches,
+  without normalization by playing time, and are not validated for
+  football meaning.
 - Player eligibility uses the Starting XI and substitution events. It
   is the participation contract supported today, not a general rule,
   and it has been exercised on fifteen real matches.
-- The analytical layer holds one table for one match. Its checks show
+- The analytical layer holds one table per match and one combined
+  table per pilot. Its checks show
   that the Parquet file equals the metrics CSV, that the CSV agrees
   with its summary on counts and totals, and that files still have the
   bytes recorded for them. A CSV edit that keeps every team's totals

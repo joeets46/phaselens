@@ -158,8 +158,13 @@ In every row the reading concerns what the provider recorded. An absent
 `counterpress` or `under_pressure` is not evidence that no pressing
 happened.
 
-The file itself holds only `true` for all 33 boolean fields and never
-`false` or `null`. That is an observation about one match, not a rule.
+Outside lists, the file itself holds only `true` for all 33 boolean
+fields and never `false` or `null`; the profiler does not look inside
+lists, where `shot.freeze_frame[].teammate` holds both values. That is
+an observation about one match, not a rule. Across the fifteen pilot
+matches the same holds: the 49 boolean field paths outside lists hold
+only `true`, never `false` or `null`, and the only boolean anywhere in
+the events files that holds `false` is `shot.freeze_frame[].teammate`.
 
 ### What a possession id represents
 
@@ -219,8 +224,9 @@ In the match, 1,514 of 4,934 references are not returned. Unresolved.
 - Which team's turnover starts the `counterpress` window, and whether
   the flag is collected or computed.
 - Whether the list of seven `counterpress` event types is exhaustive,
-  and what the flag means on the five `Pass` events with
-  `pass.type.name` "Interception" observed in the pilot.
+  and what the flag means on the `Pass` events with `pass.type.name`
+  "Interception" that carry it: 5 in the five-match pilot, 35 in the
+  fifteen-match pilot.
 - An explicit serialization rule for `under_pressure`.
 - Which `off_camera` statement is authoritative.
 - Direction of play and coordinate units as explicit statements.
