@@ -519,6 +519,7 @@ data/raw/statsbomb/open-data/<commit_sha>/data/events/<match_id>.json
 - [Three-sixty frames](docs/three_sixty.md)
 - [Demo guide](docs/demo_guide.md)
 - [Browser checklist](docs/browser_checklist.md)
+- [Data model](docs/data_model.md)
 - [Manifest format](manifests/README.md)
 
 ## Data source and attribution
